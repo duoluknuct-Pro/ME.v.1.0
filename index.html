@@ -1,584 +1,1819 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOS Motor Riders - Monitoring & Admin Dashboard</title>
-  
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0f172a">
-  
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-  <style>
-    #map { height: 420px; width: 100%; border-radius: 0.75rem; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EO Central - Event & Rundown Manager</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f3ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#1e1b4b',
+                            dark: '#0b0f19',
+                            card: '#151c2c',
+                            border: '#242f47'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- SheetJS (XLSX) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF & AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #242f47; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
+        .glass-panel { background: rgba(21, 28, 44, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 font-sans min-h-screen">
+<body class="bg-[#0b0f19] text-gray-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
 
-  <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-      <div class="flex items-center space-x-3">
-        <div class="bg-red-600 p-2 rounded-lg animate-pulse">
-          <i class="fa-solid fa-triangle-exclamation text-xl text-white"></i>
-        </div>
-        <div>
-          <h1 class="text-lg font-bold text-white tracking-wide">SOS MOTOR RIDERS</h1>
-          <p class="text-xs text-slate-400">PWA Monitoring &amp; ESP32 Firmware Generator</p>
-        </div>
-      </div>
-      <div class="flex items-center space-x-2">
-        <button onclick="toggleModal(true)" class="bg-indigo-600 hover:bg-indigo-500 text-xs text-white px-3 py-2 rounded-lg transition flex items-center gap-1 font-semibold">
-          <i class="fa-solid fa-microchip"></i> ESP32 Config Generator
-        </button>
-        <button onclick="loadData()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-2 rounded-lg transition flex items-center gap-1">
-          <i class="fa-solid fa-rotate"></i> Refresh
-        </button>
-      </div>
-    </div>
-  </header>
+    <!-- Top Bar Navigation -->
+    <header class="sticky top-0 z-40 bg-brand-card/90 border-b border-brand-border backdrop-filter backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand Logo & Project Switcher -->
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="p-2 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-500/30 text-white">
+                            <i class="bi bi-calendar2-event text-xl"></i>
+                        </div>
+                        <span class="text-xl font-bold tracking-tight text-white">EO<span class="text-indigo-400">CENTRAL</span></span>
+                    </div>
+                    <span class="text-gray-600 hidden sm:inline">|</span>
+                    <!-- Active Project Dropdown -->
+                    <div class="relative hidden sm:block">
+                        <select id="activeProjectSelect" onchange="changeActiveProject(this.value)" class="bg-slate-900 border border-brand-border text-sm text-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-60 p-2 font-medium">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
 
-  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+                <!-- User Profile & Global Controls -->
+                <div class="flex items-center space-x-3 sm:space-x-4">
+                    <!-- Network / Offline Sync Status -->
+                    <div id="syncBadge" onclick="triggerManualSync()" class="cursor-pointer flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/50 hover:bg-emerald-900 transition" title="Klik untuk rekonsiliasi data">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="syncStatusText">Online (Synced)</span>
+                    </div>
 
-    <div id="alertBanner" class="hidden bg-red-900/80 border border-red-500 text-red-200 p-4 rounded-xl flex justify-between items-center shadow-lg">
-      <div class="flex items-center gap-3">
-        <i class="fa-solid fa-bell-exclamation text-3xl animate-bounce text-red-400"></i>
-        <div>
-          <h3 class="font-bold text-base">PERINGATAN SOS AKTIF!</h3>
-          <p class="text-xs text-red-300" id="alertSubtitle">Pengendara membutuhkan bantuan segera.</p>
-        </div>
-      </div>
-      <span class="text-xs font-mono bg-red-950 px-3 py-1 rounded-full border border-red-700" id="alertTime">NOW</span>
-    </div>
+                    <!-- Role Badge -->
+                    <div class="hidden md:flex items-center px-3 py-1.5 rounded-lg bg-indigo-950/60 border border-indigo-800/40 text-xs text-indigo-300 font-mono">
+                        <i class="bi bi-shield-lock mr-1.5 text-indigo-400"></i>
+                        <span id="userRoleBadge">Super Admin</span>
+                    </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-      <div class="lg:col-span-2 bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col space-y-3 relative z-0">
-        <div class="flex flex-wrap justify-between items-center gap-2">
-          <h2 class="font-semibold text-slate-200 flex items-center gap-2">
-            <i class="fa-solid fa-map-location-dot text-red-500"></i> Lokasi Peta Interaktif
-          </h2>
-          <div class="flex items-center gap-2">
-            <button onclick="recenterSOS()" class="bg-red-600 hover:bg-red-500 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1 transition">
-              <i class="fa-solid fa-crosshairs"></i> Recenter SOS
-            </button>
-            <button onclick="fetchNearbyPOI()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1 transition">
-              <i class="fa-solid fa-layer-group"></i> Cari POI Terdekat
-            </button>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap justify-between items-center gap-2 bg-slate-900/60 p-2 rounded-xl text-xs">
-          <span id="coordsDisplay" class="text-slate-400 font-mono">Lat: - | Lng: -</span>
-          <span id="poiStatus" class="text-amber-400 text-[11px] font-medium">Klik 'Cari POI Terdekat' untuk memuat fasilitas terdekat.</span>
-        </div>
-
-        <div id="map"></div>
-      </div>
-
-      <div class="space-y-6">
-
-        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 space-y-4">
-          <h2 class="font-semibold text-slate-200 flex items-center gap-2 text-sm">
-            <i class="fa-solid fa-cloud-sun text-amber-400"></i> Informasi Lingkungan
-          </h2>
-          
-          <div class="grid grid-cols-2 gap-3">
-            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/50">
-              <span class="text-xs text-slate-400 block">Cuaca</span>
-              <span id="wCondition" class="text-sm font-bold text-slate-100">--</span>
+                    <!-- Quick Docs / Code GAS Modal Trigger -->
+                    <button onclick="switchTab('tab-gas-guide')" class="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-slate-800 transition" title="Dokumentasi & Code GAS">
+                        <i class="bi bi-code-slash text-lg"></i>
+                    </button>
+                </div>
             </div>
-            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/50">
-              <span class="text-xs text-slate-400 block">Suhu</span>
-              <span id="wTemp" class="text-sm font-bold text-amber-400">--</span>
+        </div>
+    </header>
+
+    <div class="flex-1 flex max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 gap-6">
+        <!-- Sidebar Navigation (Desktop) -->
+        <aside class="hidden lg:block w-64 flex-shrink-0">
+            <nav class="space-y-1.5 sticky top-24">
+                <button onclick="switchTab('tab-dashboard')" id="nav-tab-dashboard" class="nav-link w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition text-white bg-indigo-600/90 shadow-lg shadow-indigo-600/20">
+                    <i class="bi bi-speedometer2 text-lg mr-3"></i> Dashboard & Live
+                </button>
+                <button onclick="switchTab('tab-projects')" id="nav-tab-projects" class="nav-link w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition text-gray-400 hover:text-white hover:bg-slate-800/60">
+                    <i class="bi bi-folder2-open text-lg mr-3"></i> Daftar Proyek
+                </button>
+                <button onclick="switchTab('tab-rundown')" id="nav-tab-rundown" class="nav-link w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition text-gray-400 hover:text-white hover:bg-slate-800/60">
+                    <i class="bi bi-clock-history text-lg mr-3"></i> Rundown Builder
+                </button>
+                <button onclick="switchTab('tab-tasks')" id="nav-tab-tasks" class="nav-link w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition text-gray-400 hover:text-white hover:bg-slate-800/60">
+                    <i class="bi bi-list-check text-lg mr-3"></i> Jobdesk & Divisi
+                </button>
+                <button onclick="switchTab('tab-crew')" id="nav-tab-crew" class="nav-link w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition text-gray-400 hover:text-white hover:bg-slate-800/60">
+                    <i class="bi bi-people text-lg mr-3"></i> Kru & Hak Akses
+                </button>
+                <button onclick="switchTab('tab-field')" id="nav-tab-field" class="nav-link w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition text-gray-400 hover:text-white hover:bg-slate-800/60">
+                    <i class="bi bi-phone-vibrate text-lg mr-3"></i> Mode Lapangan
+                </button>
+                <div class="pt-4 border-t border-brand-border mt-4">
+                    <button onclick="switchTab('tab-gas-guide')" id="nav-tab-gas-guide" class="nav-link w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition text-amber-400/90 hover:bg-amber-950/30 border border-amber-500/20">
+                        <i class="bi bi-file-earmark-code text-lg mr-3"></i> Integrasi GAS & Sheet
+                    </button>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="flex-1 min-w-0 pb-16 lg:pb-0">
+
+            <!-- Mobile Active Project Selector -->
+            <div class="sm:hidden mb-4">
+                <label for="activeProjectSelectMobile" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Proyek Aktif:</label>
+                <select id="activeProjectSelectMobile" onchange="changeActiveProject(this.value)" class="bg-slate-900 border border-brand-border text-sm text-indigo-200 rounded-lg block w-full p-2.5 font-medium">
+                    <!-- Populated dynamically -->
+                </select>
             </div>
-            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/50">
-              <span class="text-xs text-slate-400 block">Kecepatan Angin</span>
-              <span id="wWind" class="text-sm font-bold text-cyan-400">--</span>
-            </div>
-            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/50">
-              <span class="text-xs text-slate-400 block">Lalu Lintas</span>
-              <span id="trafficInfo" class="text-sm font-bold text-emerald-400">Lancar</span>
-            </div>
-          </div>
-        </div>
 
-        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 space-y-3">
-          <h2 class="font-semibold text-slate-200 flex items-center gap-2 text-sm">
-            <i class="fa-solid fa-reply text-emerald-400"></i> Kirim Respon ke Layar OLED
-          </h2>
-          
-          <p class="text-xs text-slate-400">Kirim pesan langsung ke layar OLED motor pengendara.</p>
-          
-          <div class="space-y-2">
-            <input type="hidden" id="selectedSosId">
-            <select id="presetMessage" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-xl p-2.5 outline-none" onchange="applyPreset()">
-              <option value="">-- Pilih Pesan Cepat --</option>
-              <option value="Bantuan Meluncur!">Bantuan Meluncur!</option>
-              <option value="Tetap Tenang, Kami Datang">Tetap Tenang, Kami Datang</option>
-              <option value="Ambulans Dikontak">Ambulans Dikontak</option>
-            </select>
-            
-            <input type="text" id="customMessage" placeholder="Atau ketik pesan khusus..." class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-xl p-2.5 outline-none">
-            
-            <button onclick="submitResponse()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-2.5 rounded-xl transition flex justify-center items-center gap-2">
-              <i class="fa-solid fa-paper-plane"></i> Kirim Respon Kedaruratan
-            </button>
+            <!-- ==================== TAB 1: DASHBOARD ==================== -->
+            <section id="tab-dashboard" class="tab-content space-y-6">
+                <!-- Welcome Banner -->
+                <div class="glass-panel p-6 rounded-2xl relative overflow-hidden border border-brand-border">
+                    <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-indigo-600/10 rounded-full blur-3xl"></div>
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-900/60 text-indigo-300 border border-indigo-700/50 mb-2">
+                                Event Operations Live
+                            </span>
+                            <h1 id="dashProjectTitle" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                                Loading Proyek...
+                            </h1>
+                            <p id="dashProjectSubtitle" class="text-gray-400 text-sm mt-1">
+                                Klien: - | Lokasi: -
+                            </p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <button onclick="triggerIncidentModal()" class="px-4 py-2.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 rounded-xl font-medium text-sm transition flex items-center">
+                                <i class="bi bi-exclamation-triangle-fill mr-2"></i> Laporkan Kendala
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
-            <!-- TOMBOL RESET KE STANDBY -->
-            <button onclick="resetToStandby()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs py-2.5 rounded-xl transition flex justify-center items-center gap-2">
-              <i class="fa-solid fa-rotate-left"></i> Reset OLED ke Standby
-            </button>
-          </div>
-        </div>
+                <!-- Stats Counters Grid -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="glass-panel p-4 rounded-xl border border-brand-border">
+                        <div class="flex items-center justify-between text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">
+                            <span>Total Sesi Rundown</span>
+                            <i class="bi bi-clock text-indigo-400 text-base"></i>
+                        </div>
+                        <div id="statRundownCount" class="text-2xl font-bold text-white">0</div>
+                        <div class="text-xs text-indigo-400 mt-1" id="statRundownDuration">0 Jam Terjadwal</div>
+                    </div>
+                    <div class="glass-panel p-4 rounded-xl border border-brand-border">
+                        <div class="flex items-center justify-between text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">
+                            <span>Progres Jobdesk</span>
+                            <i class="bi bi-check2-circle text-emerald-400 text-base"></i>
+                        </div>
+                        <div id="statTaskProgress" class="text-2xl font-bold text-emerald-400">0%</div>
+                        <div class="text-xs text-gray-400 mt-1" id="statTaskRatio">0 dari 0 selesai</div>
+                    </div>
+                    <div class="glass-panel p-4 rounded-xl border border-brand-border">
+                        <div class="flex items-center justify-between text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">
+                            <span>Tugas Terhambat/Mendesak</span>
+                            <i class="bi bi-exclamation-octagon text-amber-400 text-base"></i>
+                        </div>
+                        <div id="statPendingTasks" class="text-2xl font-bold text-amber-400">0</div>
+                        <div class="text-xs text-amber-300/80 mt-1">Perlu Perhatian Divisi</div>
+                    </div>
+                    <div class="glass-panel p-4 rounded-xl border border-brand-border">
+                        <div class="flex items-center justify-between text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">
+                            <span>Total Kru Bertugas</span>
+                            <i class="bi bi-people text-cyan-400 text-base"></i>
+                        </div>
+                        <div id="statCrewCount" class="text-2xl font-bold text-cyan-400">0</div>
+                        <div class="text-xs text-gray-400 mt-1">Di 8 Divisi Utama</div>
+                    </div>
+                </div>
 
-      </div>
-    </div>
+                <!-- Stage Manager Control Bar & Active Item -->
+                <div class="glass-panel p-5 rounded-2xl border-2 border-indigo-500/30">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-brand-border">
+                        <div class="flex items-center space-x-2">
+                            <span class="flex h-3 w-3 relative">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                            </span>
+                            <h2 class="font-bold text-lg text-white">Stage Control Real-Time</h2>
+                        </div>
+                        <span class="text-xs font-mono text-gray-400">Waktu Lapangan: <span id="clockDisplay" class="text-indigo-300 font-bold">00:00:00</span></span>
+                    </div>
 
-    <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 space-y-4">
-      <h2 class="font-semibold text-slate-200 flex items-center gap-2 text-sm">
-        <i class="fa-solid fa-clock-rotate-left text-slate-400"></i> Riwayat Laporan SOS
-      </h2>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs text-slate-300">
-          <thead class="bg-slate-900/80 text-slate-400 uppercase font-mono">
-            <tr>
-              <th class="p-3">ID SOS</th>
-              <th class="p-3">Waktu</th>
-              <th class="p-3">Device ID</th>
-              <th class="p-3">Status</th>
-              <th class="p-3">Respon Keluarga</th>
-              <th class="p-3">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="sosLogTable" class="divide-y divide-slate-700/50">
-            <tr>
-              <td colspan="6" class="text-center p-4 text-slate-500">Memuat data log...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+                    <div id="liveRundownCard" class="bg-slate-900/90 p-4 rounded-xl border border-slate-700 mb-4">
+                        <!-- Populated by JS -->
+                    </div>
 
-  </main>
+                    <div class="flex flex-wrap gap-2 justify-end">
+                        <button onclick="setStageControlState('ON_TIME')" class="px-3.5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-semibold flex items-center">
+                            <i class="bi bi-play-circle mr-1.5"></i> Sesuai Jadwal
+                        </button>
+                        <button onclick="setStageControlState('DELAY')" class="px-3.5 py-2 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold flex items-center">
+                            <i class="bi bi-pause-circle mr-1.5"></i> Tunda / Delay (+10m)
+                        </button>
+                        <button onclick="nextRundownItem()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center shadow-md">
+                            Lanjut Sesi Berikutnya <i class="bi bi-chevron-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
 
-  <div id="firmwareModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9999] hidden flex justify-center items-center p-4 overflow-y-auto">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-3xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col shadow-2xl relative z-[10000]">
-      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-code text-indigo-400"></i> ESP32 Firmware Generator (C++)
-        </h3>
-        <button onclick="toggleModal(false)" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-      </div>
+                <!-- Interactive Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-panel p-5 rounded-2xl border border-brand-border">
+                        <h3 class="text-base font-semibold text-white mb-4 flex items-center">
+                            <i class="bi bi-pie-chart text-indigo-400 mr-2"></i> Status Jobdesk Divisi
+                        </h3>
+                        <div class="h-64 relative">
+                            <canvas id="tasksStatusChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-2xl border border-brand-border">
+                        <h3 class="text-base font-semibold text-white mb-4 flex items-center">
+                            <i class="bi bi-bar-chart-line text-cyan-400 mr-2"></i> Beban Tugas per Divisi
+                        </h3>
+                        <div class="h-64 relative">
+                            <canvas id="divisionTaskChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">URL Deploy Google Apps Script (GAS)</label>
-          <input type="text" id="cfgGasUrl" placeholder="https://script.google.com/macros/s/AKfycbyjC8YtVy6W5Oq0ss96DFohqmQU38sdIojKJ4VMpBpJXNkeIJ0cchdonOgj4bDrH7cn/exec" class="w-full bg-slate-900 border border-slate-700 text-xs p-2.5 rounded-xl text-slate-200 outline-none">
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Wi-Fi SSID (Nama Wi-Fi)</label>
-          <input type="text" id="cfgSsid" placeholder="Nama WiFi Anda" class="w-full bg-slate-900 border border-slate-700 text-xs p-2.5 rounded-xl text-slate-200 outline-none">
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Wi-Fi Password</label>
-          <input type="password" id="cfgPassword" placeholder="Password WiFi" class="w-full bg-slate-900 border border-slate-700 text-xs p-2.5 rounded-xl text-slate-200 outline-none">
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Device ID ESP32</label>
-          <input type="text" id="cfgDeviceId" value="ESP32_RIDER_01" class="w-full bg-slate-900 border border-slate-700 text-xs p-2.5 rounded-xl text-slate-200 outline-none">
-        </div>
-      </div>
+            <!-- ==================== TAB 2: PROJECTS ==================== -->
+            <section id="tab-projects" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Manajemen Proyek Acara</h1>
+                        <p class="text-sm text-gray-400">Kelola seluruh event, status pelaksanaan, dan lokasi acara</p>
+                    </div>
+                    <button onclick="openProjectModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium text-sm transition shadow-lg shadow-indigo-600/30 flex items-center">
+                        <i class="bi bi-plus-lg mr-2"></i> Buat Proyek Baru
+                    </button>
+                </div>
 
-      <button onclick="generateCppCode()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs py-2.5 rounded-xl transition">
-        Generate Kode C++ Firmware
-      </button>
+                <div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Cards dynamic -->
+                </div>
+            </section>
 
-      <div class="flex-grow flex flex-col space-y-2 overflow-hidden">
-        <div class="flex justify-between items-center">
-          <span class="text-xs text-slate-400 font-mono">Output: esp32_sos_firmware.ino</span>
-          <button onclick="copyCppCode()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1">
-            <i class="fa-solid fa-copy"></i> Salin Kode
-          </button>
-        </div>
-        <textarea id="cppCodeOutput" readonly class="w-full h-48 bg-slate-950 font-mono text-[11px] text-emerald-400 p-3 rounded-xl border border-slate-700/60 overflow-y-auto outline-none resize-none" placeholder="Klik tombol Generate untuk menghasilkan kode C++..."></textarea>
-      </div>
-    </div>
-  </div>
+            <!-- ==================== TAB 3: RUNDOWN BUILDER ==================== -->
+            <section id="tab-rundown" class="tab-content hidden space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Rundown Builder Interaktif</h1>
+                        <p class="text-sm text-gray-400">Susun alur susunan acara dengan otomatisasi waktu & deteksi bentrok</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="openRundownModal()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold flex items-center shadow-md">
+                            <i class="bi bi-plus-circle mr-1.5"></i> Tambah Sesi
+                        </button>
+                        <button onclick="exportRundownPDF()" class="px-3.5 py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-semibold flex items-center">
+                            <i class="bi bi-file-earmark-pdf mr-1.5"></i> Export PDF
+                        </button>
+                        <button onclick="exportRundownExcel()" class="px-3.5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center">
+                            <i class="bi bi-file-earmark-excel mr-1.5"></i> Export Excel
+                        </button>
+                    </div>
+                </div>
 
-  <script>
-    let map, marker;
-    let poiLayerGroup = L.layerGroup();
-    let lastSosCoords = { lat: -0.5021, lng: 117.1536 };
-    let gasUrlGlobal = localStorage.getItem('gas_url') || '';
+                <!-- Schedule Conflict Alert Bar -->
+                <div id="conflictAlertBox" class="hidden p-4 bg-amber-950/80 border border-amber-600/60 rounded-xl text-amber-200 text-sm flex items-start space-x-3">
+                    <i class="bi bi-exclamation-triangle-fill text-amber-400 text-lg flex-shrink-0 mt-0.5"></i>
+                    <div>
+                        <span class="font-bold">Peringatan Bentrok Jadwal!</span>
+                        <div id="conflictAlertText" class="text-xs mt-0.5 text-amber-300/90"></div>
+                    </div>
+                </div>
 
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg error:', err));
-      });
-    }
+                <!-- Rundown Table -->
+                <div class="glass-panel rounded-2xl border border-brand-border overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-gray-300">
+                            <thead class="bg-slate-900/90 text-xs uppercase tracking-wider text-gray-400 border-b border-brand-border">
+                                <tr>
+                                    <th class="py-3.5 px-4 font-semibold">Urutan</th>
+                                    <th class="py-3.5 px-4 font-semibold">Waktu (Mulai - Selesai)</th>
+                                    <th class="py-3.5 px-4 font-semibold">Kegiatan</th>
+                                    <th class="py-3.5 px-4 font-semibold">Divisi & PIC</th>
+                                    <th class="py-3.5 px-4 font-semibold">Lokasi</th>
+                                    <th class="py-3.5 px-4 font-semibold">Status Stage</th>
+                                    <th class="py-3.5 px-4 font-semibold text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rundownTableBody" class="divide-y divide-brand-border">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
 
-    document.addEventListener("DOMContentLoaded", () => {
-      initMap();
-      if(gasUrlGlobal) document.getElementById('cfgGasUrl').value = gasUrlGlobal;
-      loadData();
-      setInterval(loadData, 10000);
-    });
+            <!-- ==================== TAB 4: TASKS / JOBDESK ==================== -->
+            <section id="tab-tasks" class="tab-content hidden space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Manajemen Jobdesk & Divisi</h1>
+                        <p class="text-sm text-gray-400">Pembagian tugas operasional terperinci per divisi</p>
+                    </div>
+                    <button onclick="openTaskModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium text-sm transition flex items-center shadow-md">
+                        <i class="bi bi-plus-lg mr-2"></i> Tambah Jobdesk
+                    </button>
+                </div>
 
-    function initMap() {
-      map = L.map('map').setView([lastSosCoords.lat, lastSosCoords.lng], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19, attribution: '© OpenStreetMap'
-      }).addTo(map);
+                <!-- Filters -->
+                <div class="glass-panel p-4 rounded-xl border border-brand-border flex flex-wrap gap-3 items-center justify-between">
+                    <div class="flex flex-wrap gap-2 items-center flex-1 min-w-[280px]">
+                        <div class="relative flex-1">
+                            <i class="bi bi-search absolute left-3 top-2.5 text-gray-500"></i>
+                            <input type="text" id="taskSearchInput" oninput="renderTasks()" placeholder="Cari nama tugas / PIC..." class="bg-slate-900 border border-brand-border pl-9 pr-3 py-2 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full">
+                        </div>
+                        <select id="filterDivisionSelect" onchange="renderTasks()" class="bg-slate-900 border border-brand-border text-sm text-gray-300 rounded-lg px-3 py-2">
+                            <option value="ALL">Semua Divisi</option>
+                            <option value="Event & Stage">Event & Stage</option>
+                            <option value="Dekorasi">Dekorasi</option>
+                            <option value="Artis & Talent">Artis & Talent</option>
+                            <option value="Teknik">Teknik</option>
+                            <option value="Konsumsi">Konsumsi</option>
+                            <option value="Logistik">Logistik</option>
+                            <option value="Dokumentasi">Dokumentasi</option>
+                            <option value="Safety & Security">Safety & Security</option>
+                        </select>
+                        <select id="filterStatusSelect" onchange="renderTasks()" class="bg-slate-900 border border-brand-border text-sm text-gray-300 rounded-lg px-3 py-2">
+                            <option value="ALL">Semua Status</option>
+                            <option value="Belum Dimulai">Belum Dimulai</option>
+                            <option value="Dikerjakan">Dikerjakan</option>
+                            <option value="Menunggu Persetujuan">Menunggu Persetujuan</option>
+                            <option value="Selesai">Selesai</option>
+                            <option value="Terhambat">Terhambat</option>
+                        </select>
+                    </div>
+                </div>
 
-      poiLayerGroup.addTo(map);
+                <!-- Tasks List -->
+                <div id="tasksList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Dynamic task cards -->
+                </div>
+            </section>
 
-      marker = L.marker([lastSosCoords.lat, lastSosCoords.lng]).addTo(map)
-        .bindPopup('Menunggu sinyal darurat...').openPopup();
-    }
+            <!-- ==================== TAB 5: CREW & RBAC ==================== -->
+            <section id="tab-crew" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Direktori Kru & Hak Akses</h1>
+                        <p class="text-sm text-gray-400">Kelola anggota tim, peranan (Role), dan penugasan divisi</p>
+                    </div>
+                    <button onclick="openCrewModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium text-sm transition flex items-center shadow-md">
+                        <i class="bi bi-person-plus mr-2"></i> Tambah Kru Baru
+                    </button>
+                </div>
 
-    function recenterSOS() {
-      if (lastSosCoords && map) {
-        map.setView([lastSosCoords.lat, lastSosCoords.lng], 16);
-        marker.openPopup();
-      }
-    }
+                <div class="glass-panel rounded-2xl border border-brand-border overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-gray-300">
+                            <thead class="bg-slate-900/90 text-xs uppercase tracking-wider text-gray-400 border-b border-brand-border">
+                                <tr>
+                                    <th class="py-3.5 px-4 font-semibold">Nama Kru</th>
+                                    <th class="py-3.5 px-4 font-semibold">Email</th>
+                                    <th class="py-3.5 px-4 font-semibold">Peran (Role)</th>
+                                    <th class="py-3.5 px-4 font-semibold">Divisi</th>
+                                    <th class="py-3.5 px-4 font-semibold">Status Akun</th>
+                                    <th class="py-3.5 px-4 font-semibold text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="crewTableBody" class="divide-y divide-brand-border">
+                                <!-- Dynamic crew rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
 
-    async function fetchNearbyPOI() {
-      if (!lastSosCoords.lat || !lastSosCoords.lng) return;
-      const statusEl = document.getElementById('poiStatus');
-      statusEl.innerText = "Memuat POI terdekat...";
+            <!-- ==================== TAB 6: FIELD / OFFLINE MODE ==================== -->
+            <section id="tab-field" class="tab-content hidden space-y-6">
+                <div class="p-6 bg-slate-900 border-2 border-indigo-500 rounded-2xl text-center space-y-3">
+                    <div class="inline-flex p-3 bg-indigo-600/20 text-indigo-400 rounded-full text-2xl">
+                        <i class="bi bi-phone-vibrate"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white">Mode Lapangan (On-Site Field Mode)</h2>
+                    <p class="text-sm text-gray-400 max-w-xl mx-auto">
+                        Antarmuka khusus kru lapangan berlayar sentuh dengan tombol berukuran besar, kontras tinggi, serta dukungan penyimpanan offline otomatis.
+                    </p>
+                    <div class="pt-2">
+                        <button onclick="toggleSimulatedOffline()" id="btnOfflineSim" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-semibold">
+                            Simulasi Koneksi Terputus (Offline)
+                        </button>
+                    </div>
+                </div>
 
-      poiLayerGroup.clearLayers();
+                <!-- Field Rundown Quick Check -->
+                <div class="glass-panel p-5 rounded-2xl border border-brand-border">
+                    <h3 class="font-bold text-white mb-3 text-lg flex items-center">
+                        <i class="bi bi-view-list text-emerald-400 mr-2"></i> Rundown Acara Hari Ini
+                    </h3>
+                    <div id="fieldRundownList" class="space-y-3">
+                        <!-- Dynamic list -->
+                    </div>
+                </div>
 
-      const radius = 3000;
-      const overpassQuery = `
-        [out:json];
-        (
-          node["amenity"="fuel"](around:${radius},${lastSosCoords.lat},${lastSosCoords.lng});
-          node["shop"="car_repair"](around:${radius},${lastSosCoords.lat},${lastSosCoords.lng});
-          node["shop"="motorcycle_repair"](around:${radius},${lastSosCoords.lat},${lastSosCoords.lng});
-          node["amenity"="restaurant"](around:${radius},${lastSosCoords.lat},${lastSosCoords.lng});
-          node["amenity"="fast_food"](around:${radius},${lastSosCoords.lat},${lastSosCoords.lng});
-          node["shop"="convenience"](around:${radius},${lastSosCoords.lat},${lastSosCoords.lng});
-        );
-        out body;
-      `;
+                <!-- Field Quick Task Checklist -->
+                <div class="glass-panel p-5 rounded-2xl border border-brand-border">
+                    <h3 class="font-bold text-white mb-3 text-lg flex items-center">
+                        <i class="bi bi-card-checklist text-cyan-400 mr-2"></i> Checklist Tugas Divisi Saya
+                    </h3>
+                    <div id="fieldTaskList" class="space-y-3">
+                        <!-- Dynamic field tasks -->
+                    </div>
+                </div>
+            </section>
 
-      try {
-        const response = await fetch('https://overpass-api.de/api/interpreter', {
-          method: 'POST',
-          body: overpassQuery
-        });
-        const data = await response.json();
+            <!-- ==================== TAB 7: GAS & GOOGLE SHEETS GUIDE ==================== -->
+            <section id="tab-gas-guide" class="tab-content hidden space-y-6">
+                <div class="glass-panel p-6 rounded-2xl border border-amber-500/30">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="p-3 bg-amber-500/20 text-amber-400 rounded-xl text-2xl">
+                            <i class="bi bi-file-earmark-code"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-white">Panduan Integrasi Google Apps Script (GAS)</h1>
+                            <p class="text-sm text-gray-400">Petunjuk komprehensif pemasangan backend Google Sheets & PWA Assets</p>
+                        </div>
+                    </div>
 
-        if (!data.elements || data.elements.length === 0) {
-          statusEl.innerText = "Tidak ditemukan POI dalam radius 3 km.";
-          return;
-        }
+                    <!-- Instructions Navigation -->
+                    <div class="flex border-b border-brand-border space-x-4 mb-6">
+                        <button onclick="switchGasCodeTab('code-gs')" id="subnav-code-gs" class="py-2 px-1 text-sm font-semibold text-amber-400 border-b-2 border-amber-400">Code.gs (Backend)</button>
+                        <button onclick="switchGasCodeTab('sheet-db')" id="subnav-sheet-db" class="py-2 px-1 text-sm font-semibold text-gray-400 hover:text-white">Struktur Google Sheet</button>
+                        <button onclick="switchGasCodeTab('manifest-json')" id="subnav-manifest-json" class="py-2 px-1 text-sm font-semibold text-gray-400 hover:text-white">manifest.json</button>
+                        <button onclick="switchGasCodeTab('sw-js')" id="subnav-sw-js" class="py-2 px-1 text-sm font-semibold text-gray-400 hover:text-white">sw.js (PWA)</button>
+                    </div>
 
-        let count = 0;
-        data.elements.forEach(item => {
-          let typeLabel = "POI";
-          let color = "#3b82f6";
+                    <!-- Code GS Content -->
+                    <div id="gas-content-code-gs" class="gas-code-pane space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono text-amber-300">File: Code.gs</span>
+                            <button onclick="copyCodeBlock('codeGsText')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-white rounded border border-slate-600">
+                                <i class="bi bi-clipboard mr-1"></i> Salin Kode Code.gs
+                            </button>
+                        </div>
+                        <pre id="codeGsText" class="p-4 bg-slate-950 rounded-xl text-xs font-mono text-emerald-400 overflow-x-auto border border-slate-800 leading-relaxed max-h-96">
+// ==========================================
+// BACKEND GOOGLE APPS SCRIPT (EO CENTRAL)
+// ==========================================
 
-          if (item.tags.amenity === "fuel") {
-            typeLabel = "SPBU";
-            color = "#ef4444";
-          } else if (item.tags.shop === "car_repair" || item.tags.shop === "motorcycle_repair") {
-            typeLabel = "Bengkel";
-            color = "#f59e0b";
-          } else if (item.tags.amenity === "restaurant" || item.tags.amenity === "fast_food") {
-            typeLabel = "Rumah Makan";
-            color = "#10b981";
-          } else if (item.tags.shop === "convenience") {
-            typeLabel = "Minimarket";
-            color = "#06b6d4";
-          }
-
-          const poiMarker = L.circleMarker([item.lat, item.lon], {
-            radius: 8,
-            fillColor: color,
-            color: '#ffffff',
-            weight: 2,
-            opacity: 1,
-            fillOpacity: 0.8
-          });
-
-          const name = item.tags.name || typeLabel;
-          poiMarker.bindPopup(`<b>${typeLabel}: ${name}</b>`);
-          poiLayerGroup.addLayer(poiMarker);
-          count++;
-        });
-
-        statusEl.innerText = `Menampilkan ${count} POI terdekat.`;
-      } catch (err) {
-        console.error("Gagal memuat POI:", err);
-        statusEl.innerText = "Gagal memuat POI terdekat.";
-      }
-    }
-
-    function toggleModal(show) {
-      document.getElementById('firmwareModal').classList.toggle('hidden', !show);
-    }
-
-    async function loadData() {
-      gasUrlGlobal = document.getElementById('cfgGasUrl').value.trim() || gasUrlGlobal;
-      if (!gasUrlGlobal) return;
-
-      try {
-        const response = await fetch(`${gasUrlGlobal}?action=get_logs`);
-        const json = await response.json();
-        if (json.status === "success") {
-          renderData(json.data);
-        }
-      } catch (err) {
-        console.error("Error loading logs:", err);
-      }
-    }
-
-    function renderData(logs) {
-      const tbody = document.getElementById('sosLogTable');
-      tbody.innerHTML = '';
-
-      if (!logs || logs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-slate-500">Belum ada riwayat darurat.</td></tr>';
-        return;
-      }
-
-      const latest = logs[0];
-      
-      if (latest.Status_Selesai === "AKTIF") {
-        document.getElementById('alertBanner').classList.remove('hidden');
-        document.getElementById('alertSubtitle').innerText = `Motor ${latest.Device_ID} menekan tombol SOS!`;
-        document.getElementById('alertTime').innerText = new Date(latest.Timestamp).toLocaleTimeString();
-      } else {
-        document.getElementById('alertBanner').classList.add('hidden');
-      }
-
-      if (latest.Latitude && latest.Longitude) {
-        const lat = parseFloat(latest.Latitude);
-        const lng = parseFloat(latest.Longitude);
-        
-        lastSosCoords = { lat, lng };
-        
-        map.setView([lat, lng], 15);
-        marker.setLatLng([lat, lng])
-          .bindPopup(`<b>SOS AKTIF!</b><br>Device: ${latest.Device_ID}<br>Waktu: ${new Date(latest.Timestamp).toLocaleString()}`)
-          .openPopup();
-        document.getElementById('coordsDisplay').innerText = `Lat: ${lat.toFixed(4)} | Lng: ${lng.toFixed(4)}`;
-      }
-
-      document.getElementById('wCondition').innerText = latest.Kondisi_Cuaca || 'N/A';
-      document.getElementById('wTemp').innerText = latest.Suhu || 'N/A';
-      document.getElementById('wWind').innerText = latest.Kecepatan_Angin || 'N/A';
-      document.getElementById('selectedSosId').value = latest.ID;
-
-      logs.forEach(log => {
-        const row = document.createElement('tr');
-        row.className = "hover:bg-slate-700/30 transition";
-        row.innerHTML = `
-          <td class="p-3 font-mono font-bold text-slate-200">${log.ID}</td>
-          <td class="p-3">${new Date(log.Timestamp).toLocaleString()}</td>
-          <td class="p-3">${log.Device_ID}</td>
-          <td class="p-3">
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${log.Status_Selesai === 'AKTIF' ? 'bg-red-900/60 text-red-300 border border-red-700' : 'bg-emerald-900/60 text-emerald-300 border border-emerald-700'}">
-              ${log.Status_Selesai}
-            </span>
-          </td>
-          <td class="p-3 font-semibold text-emerald-400">${log.Respon_Keluarga || '-'}</td>
-          <td class="p-3">
-            <button onclick="selectSOS('${log.ID}')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded text-[10px]">Pilih</button>
-          </td>
-        `;
-        tbody.appendChild(row);
-      });
-    }
-
-    function applyPreset() {
-      const preset = document.getElementById('presetMessage').value;
-      if (preset) document.getElementById('customMessage').value = preset;
-    }
-
-    function selectSOS(id) {
-      document.getElementById('selectedSosId').value = id;
-      alert(`SOS ID ${id} dipilih.`);
-    }
-
-    async function submitResponse() {
-      const sosId = document.getElementById('selectedSosId').value;
-      const msg = document.getElementById('customMessage').value;
-      gasUrlGlobal = document.getElementById('cfgGasUrl').value.trim() || gasUrlGlobal;
-
-      if (!gasUrlGlobal) return alert("Masukkan URL GAS di Config terlebih dahulu!");
-      if (!sosId || !msg) return alert("Pilih SOS ID dan isi pesan respon!");
-
-      try {
-        const response = await fetch(gasUrlGlobal, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'respond_sos', sos_id: sosId, response_message: msg })
-        });
-        const res = await response.json();
-        alert(res.message);
-        document.getElementById('customMessage').value = '';
-        loadData();
-      } catch(e) {
-        alert("Gagal mengirim respon: " + e.toString());
-      }
-    }
-
-    async function resetToStandby() {
-      const devId = document.getElementById('cfgDeviceId').value.trim() || 'ESP32_RIDER_01';
-      gasUrlGlobal = document.getElementById('cfgGasUrl').value.trim() || gasUrlGlobal;
-
-      if (!gasUrlGlobal) return alert("Masukkan URL GAS di Config terlebih dahulu!");
-
-      try {
-        const response = await fetch(gasUrlGlobal, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'reset_standby', device_id: devId })
-        });
-        const res = await response.json();
-        alert(res.message);
-        loadData();
-      } catch(e) {
-        alert("Gagal mereset OLED: " + e.toString());
-      }
-    }
-
-    function generateCppCode() {
-      const url = document.getElementById('cfgGasUrl').value.trim();
-      const ssid = document.getElementById('cfgSsid').value.trim();
-      const pwd = document.getElementById('cfgPassword').value.trim();
-      const devId = document.getElementById('cfgDeviceId').value.trim() || 'ESP32_RIDER_01';
-
-      if(!url || !ssid) return alert("URL GAS dan SSID Wi-Fi wajib diisi!");
-      localStorage.setItem('gas_url', url);
-
-      const code = `#include <WiFi.h>
-#include <HTTPClient.h>
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <ArduinoJson.h>
-
-const char* WIFI_SSID = "${ssid}";
-const char* WIFI_PASSWORD = "${pwd}";
-String GAS_URL = "${url}";
-String deviceID = "${devId}";
-
-#define BUTTON_SOS_PIN 15
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
-
-float currentLat = -0.5021; 
-float currentLng = 117.1536;
-unsigned long lastPollTime = 0;
-
-void setup() {
-  Serial.begin(115200);
-  pinMode(BUTTON_SOS_PIN, INPUT_PULLUP);
-
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println(F("OLED SSD1306 Gagal Diinisialisasi"));
-    for(;;);
+function doGet(e) {
+  const action = e.parameter.action;
+  const sheetName = e.parameter.sheet;
+  
+  if (action === 'getData') {
+    return ContentService.createTextOutput(JSON.stringify(getData(sheetName)))
+      .setMimeType(ContentService.MimeType.JSON);
   }
-  displayOLED("SOS SYSTEM", "Connecting WiFi...", "");
 
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  while (WiFi.status() != WL_CONNECTED) { delay(500); }
-  displayOLED("SOS SYSTEM", "READY / STANDBY", "Tekan Tombol SOS");
+  return HtmlService.createTemplateFromFile('Index')
+    .evaluate()
+    .setTitle('EO Central Project Manager')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-void loop() {
-  if (digitalRead(BUTTON_SOS_PIN) == LOW) {
-    delay(200);
-    if (digitalRead(BUTTON_SOS_PIN) == LOW) {
-      displayOLED("SENDING SOS!", "Mengirim Sinyal...", "Tunggu Respon...");
-      triggerSOS();
-      delay(2000);
-    }
-  }
-  if (millis() - lastPollTime > 5000) {
-    lastPollTime = millis();
-    checkFamilyResponse();
-  }
-}
-
-void triggerSOS() {
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-    http.begin(GAS_URL);
-    http.addHeader("Content-Type", "application/json");
-    String payload = "{\\"action\\":\\"trigger_sos\\",\\"device_id\\":\\"" + deviceID + "\\",\\"latitude\\": " + String(currentLat, 6) + ",\\"longitude\\": " + String(currentLng, 6) + ",\\"status_darurat\\":\\"TOMBOL SOS DITEKAN\\"}";
-    http.POST(payload);
-    http.end();
-  }
-}
-
-void checkFamilyResponse() {
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    let result = { success: false };
     
-    String url = GAS_URL + "?action=get_oled_msg&device_id=" + deviceID;
-    http.begin(url);
-    
-    int httpCode = http.GET();
-    if (httpCode > 0) {
-      String payload = http.getString();
-
-      StaticJsonDocument<512> doc;
-      DeserializationError error = deserializeJson(doc, payload);
-
-      if (!error) {
-        const char* msg = doc["oled_message"];
-        if (msg != nullptr) {
-          String messageStr = String(msg);
-          
-          if (messageStr == "STANDBY / AMAN") {
-            displayOLED("SOS SYSTEM", "READY / STANDBY", "Tekan Tombol SOS");
-            Serial.println("OLED dikembalikan ke Standby.");
-          } else {
-            displayOLED("RESPON KELUARGA:", messageStr, "Hati-hati!");
-            Serial.println("Pesan OLED diterima: " + messageStr);
-          }
-        }
-      } else {
-        Serial.println("Gagal Parsing JSON dari GAS!");
-      }
-    } else {
-      Serial.print("HTTP GET Gagal, Error Code: ");
-      Serial.println(http.errorToString(httpCode));
+    if (data.action === 'saveData') {
+      result = saveData(data.sheetName, data.data, data.idFieldName);
+    } else if (data.action === 'deleteData') {
+      result = deleteData(data.sheetName, data.idValue, data.idFieldName);
     }
-    http.end();
+    
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-void displayOLED(String h, String l1, String l2) {
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0); display.println("== " + h + " ==");
-  display.setCursor(0, 20); display.println(l1);
-  display.setCursor(0, 40); display.println(l2);
-  display.display();
-}`;
+// Otomatis Setup Database & Sheet
+function setupDatabase() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  const sheets = [
+    { name: 'Users', headers: ['UserID', 'Nama', 'Email', 'Password', 'Role', 'Divisi', 'Status'] },
+    { name: 'Projects', headers: ['ProjectID', 'NamaProyek', 'Klien', 'TanggalMulai', 'TanggalSelesai', 'Lokasi', 'Status'] },
+    { name: 'Rundown', headers: ['RundownID', 'ProjectID', 'WaktuMulai', 'DurasiMenit', 'WaktuSelesai', 'NamaKegiatan', 'Divisi', 'PIC', 'Lokasi', 'Catatan', 'Status'] },
+    { name: 'Tasks', headers: ['TaskID', 'ProjectID', 'Divisi', 'JudulTugas', 'Deskripsi', 'PIC', 'Deadline', 'Prioritas', 'Status', 'Lampiran'] },
+    { name: 'Logs', headers: ['LogID', 'ProjectID', 'Timestamp', 'User', 'Aktivitas', 'Detail'] }
+  ];
 
-      document.getElementById('cppCodeOutput').value = code;
+  sheets.forEach(s => {
+    let sheet = ss.getSheetByName(s.name);
+    if (!sheet) {
+      sheet = ss.insertSheet(s.name);
+      sheet.appendRow(s.headers);
+      sheet.getRange(1, 1, 1, s.headers.length).setFontWeight('bold').setBackground('#4f46e5').setFontColor('#ffffff');
     }
+  });
+}
 
-    function copyCppCode() {
-      const copyText = document.getElementById('cppCodeOutput');
-      copyText.select();
-      document.execCommand("copy");
-      alert("Kode C++ berhasil disalin ke clipboard!");
+// Read Data Generic
+function getData(sheetName) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sheet) return [];
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+  const headers = values[0];
+  return values.slice(1).map(row => {
+    let obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  });
+}
+
+// Generic Write / Upsert Data
+function saveData(sheetName, dataObj, idFieldName) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const values = sheet.getDataRange().getValues();
+  
+  let rowIndex = -1;
+  for (let i = 1; i < values.length; i++) {
+    if (values[i][headers.indexOf(idFieldName)] == dataObj[idFieldName]) {
+      rowIndex = i + 1;
+      break;
     }
-  </script>
+  }
+
+  const rowToSave = headers.map(h => dataObj[h] !== undefined ? dataObj[h] : '');
+
+  if (rowIndex > 0) {
+    sheet.getRange(rowIndex, 1, 1, rowToSave.length).setValues([rowToSave]);
+  } else {
+    sheet.appendRow(rowToSave);
+  }
+  return { success: true };
+}
+
+// Generic Delete
+function deleteData(sheetName, idValue, idFieldName) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const values = sheet.getDataRange().getValues();
+  const idColIndex = headers.indexOf(idFieldName);
+
+  for (let i = 1; i < values.length; i++) {
+    if (values[i][idColIndex] == idValue) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  return { success: false, message: 'ID tidak ditemukan' };
+}
+                        </pre>
+                    </div>
+
+                    <!-- Sheet DB Content -->
+                    <div id="gas-content-sheet-db" class="gas-code-pane hidden space-y-4 text-sm text-gray-300">
+                        <p>Buat file Google Sheet baru di Google Drive Anda, lalu buat tab-tab berikut beserta nama header di Baris 1:</p>
+                        <ul class="list-disc pl-5 space-y-2 text-xs font-mono">
+                            <li><strong class="text-indigo-400">Users:</strong> UserID | Nama | Email | Password | Role | Divisi | Status</li>
+                            <li><strong class="text-indigo-400">Projects:</strong> ProjectID | NamaProyek | Klien | TanggalMulai | TanggalSelesai | Lokasi | Status</li>
+                            <li><strong class="text-indigo-400">Rundown:</strong> RundownID | ProjectID | WaktuMulai | DurasiMenit | WaktuSelesai | NamaKegiatan | Divisi | PIC | Lokasi | Catatan | Status</li>
+                            <li><strong class="text-indigo-400">Tasks:</strong> TaskID | ProjectID | Divisi | JudulTugas | Deskripsi | PIC | Deadline | Prioritas | Status | Lampiran</li>
+                            <li><strong class="text-indigo-400">Logs:</strong> LogID | ProjectID | Timestamp | User | Aktivitas | Detail</li>
+                        </ul>
+                    </div>
+
+                    <!-- Manifest JSON Content -->
+                    <div id="gas-content-manifest-json" class="gas-code-pane hidden space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono text-amber-300">File: manifest.json</span>
+                        </div>
+                        <pre class="p-4 bg-slate-950 rounded-xl text-xs font-mono text-cyan-400 overflow-x-auto border border-slate-800 leading-relaxed">
+{
+  "name": "EO Central Project Manager",
+  "short_name": "EO Central",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b0f19",
+  "theme_color": "#4f46e5",
+  "description": "Aplikasi Manajemen Proyek & Rundown Real-Time Event Organizer",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2693/2693507.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2693/2693507.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+                        </pre>
+                    </div>
+
+                    <!-- Service Worker JS Content -->
+                    <div id="gas-content-sw-js" class="gas-code-pane hidden space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono text-amber-300">File: sw.js</span>
+                        </div>
+                        <pre class="p-4 bg-slate-950 rounded-xl text-xs font-mono text-purple-400 overflow-x-auto border border-slate-800 leading-relaxed">
+const CACHE_NAME = 'eocentral-v1';
+const ASSETS_TO_CACHE = [
+  './',
+  'https://cdn.tailwindcss.com',
+  'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css'
+];
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
+  );
+});
+
+self.addEventListener('fetch', (e) => {
+  e.respondWith(
+    caches.match(e.request).then((res) => res || fetch(e.request))
+  );
+});
+                        </pre>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Mobile Navigation Bar -->
+    <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-brand-card/95 border-t border-brand-border backdrop-blur-md px-2 py-1 flex justify-around">
+        <button onclick="switchTab('tab-dashboard')" class="flex flex-col items-center py-1.5 px-2 text-indigo-400 font-medium text-[10px]">
+            <i class="bi bi-speedometer2 text-lg"></i> Live
+        </button>
+        <button onclick="switchTab('tab-projects')" class="flex flex-col items-center py-1.5 px-2 text-gray-400 font-medium text-[10px]">
+            <i class="bi bi-folder2-open text-lg"></i> Proyek
+        </button>
+        <button onclick="switchTab('tab-rundown')" class="flex flex-col items-center py-1.5 px-2 text-gray-400 font-medium text-[10px]">
+            <i class="bi bi-clock-history text-lg"></i> Rundown
+        </button>
+        <button onclick="switchTab('tab-tasks')" class="flex flex-col items-center py-1.5 px-2 text-gray-400 font-medium text-[10px]">
+            <i class="bi bi-list-check text-lg"></i> Jobdesk
+        </button>
+        <button onclick="switchTab('tab-field')" class="flex flex-col items-center py-1.5 px-2 text-gray-400 font-medium text-[10px]">
+            <i class="bi bi-phone-vibrate text-lg"></i> Lapangan
+        </button>
+    </nav>
+
+    <!-- Footer Signature -->
+    <footer class="border-t border-brand-border bg-slate-950 py-4 text-center text-xs text-gray-500">
+        <p>EO Central Project Manager &copy; 2026 | Created by <span class="font-bold text-indigo-400">UQ</span></p>
+    </footer>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- Project Modal -->
+    <div id="projectModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md p-6 rounded-2xl border border-brand-border space-y-4">
+            <h3 id="projectModalTitle" class="text-lg font-bold text-white">Buat Proyek Baru</h3>
+            <form id="projectForm" onsubmit="handleProjectSubmit(event)" class="space-y-3">
+                <input type="hidden" id="projId">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Nama Proyek</label>
+                    <input type="text" id="projName" required class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Nama Klien / Perusahaan</label>
+                    <input type="text" id="projClient" required class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Tgl Mulai</label>
+                        <input type="date" id="projStartDate" required class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Tgl Selesai</label>
+                        <input type="date" id="projEndDate" required class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Lokasi Event</label>
+                    <input type="text" id="projLocation" required class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Status Proyek</label>
+                    <select id="projStatus" class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                        <option value="Draft">Draft</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Live">Live / On-Going</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-2 pt-3">
+                    <button type="button" onclick="closeProjectModal()" class="px-4 py-2 bg-slate-800 text-gray-300 rounded-lg text-xs">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Rundown Item Modal -->
+    <div id="rundownModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-lg p-6 rounded-2xl border border-brand-border space-y-4">
+            <h3 id="rundownModalTitle" class="text-lg font-bold text-white">Sesi Rundown</h3>
+            <form id="rundownForm" onsubmit="handleRundownSubmit(event)" class="space-y-3">
+                <input type="hidden" id="rdId">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Jam Mulai</label>
+                        <input type="time" id="rdStartTime" required onchange="calculateRundownEndTime()" class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Durasi (Menit)</label>
+                        <input type="number" id="rdDuration" min="1" value="15" required onchange="calculateRundownEndTime()" class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Kalkulasi Jam Selesai</label>
+                    <input type="text" id="rdEndTimeDisplay" readonly class="w-full bg-slate-800 border border-brand-border rounded-lg p-2.5 text-sm text-indigo-300 font-bold">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Nama Kegiatan / Agenda</label>
+                    <input type="text" id="rdTitle" required class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Divisi Penanggung Jawab</label>
+                        <select id="rdDivision" class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                            <option value="Event & Stage">Event & Stage</option>
+                            <option value="Dekorasi">Dekorasi</option>
+                            <option value="Artis & Talent">Artis & Talent</option>
+                            <option value="Teknik">Teknik</option>
+                            <option value="Konsumsi">Konsumsi</option>
+                            <option value="Logistik">Logistik</option>
+                            <option value="Dokumentasi">Dokumentasi</option>
+                            <option value="Safety & Security">Safety & Security</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">PIC (Person in Charge)</label>
+                        <input type="text" id="rdPic" required class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Lokasi Spesifik / Stage</label>
+                    <input type="text" id="rdLocation" placeholder="Contoh: Main Stage / Holding Room" class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Catatan Tambahan</label>
+                    <textarea id="rdNotes" rows="2" class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white"></textarea>
+                </div>
+                <div class="flex justify-end space-x-2 pt-3">
+                    <button type="button" onclick="closeRundownModal()" class="px-4 py-2 bg-slate-800 text-gray-300 rounded-lg text-xs">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold">Simpan Sesi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div id="taskModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-lg p-6 rounded-2xl border border-brand-border space-y-4">
+            <h3 id="taskModalTitle" class="text-lg font-bold text-white">Jobdesk Baru</h3>
+            <form id="taskForm" onsubmit="handleTaskSubmit(event)" class="space-y-3">
+                <input type="hidden" id="taskId">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Judul Pekerjaan</label>
+                    <input type="text" id="taskTitle" required class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Divisi</label>
+                        <select id="taskDiv" class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                            <option value="Event & Stage">Event & Stage</option>
+                            <option value="Dekorasi">Dekorasi</option>
+                            <option value="Artis & Talent">Artis & Talent</option>
+                            <option value="Teknik">Teknik</option>
+                            <option value="Konsumsi">Konsumsi</option>
+                            <option value="Logistik">Logistik</option>
+                            <option value="Dokumentasi">Dokumentasi</option>
+                            <option value="Safety & Security">Safety & Security</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">PIC (Penanggung Jawab)</label>
+                        <input type="text" id="taskPic" required class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Deadline / Tenggat</label>
+                        <input type="date" id="taskDeadline" required class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Prioritas</label>
+                        <select id="taskPriority" class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                            <option value="Rendah">Rendah</option>
+                            <option value="Sedang">Sedang</option>
+                            <option value="Tinggi">Tinggi / Urgent</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Deskripsi Detail</label>
+                    <textarea id="taskDesc" rows="3" class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Status Pekerjaan</label>
+                    <select id="taskStatus" class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                        <option value="Belum Dimulai">Belum Dimulai</option>
+                        <option value="Dikerjakan">Dikerjakan</option>
+                        <option value="Menunggu Persetujuan">Menunggu Persetujuan</option>
+                        <option value="Selesai">Selesai</option>
+                        <option value="Terhambat">Terhambat</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-2 pt-3">
+                    <button type="button" onclick="closeTaskModal()" class="px-4 py-2 bg-slate-800 text-gray-300 rounded-lg text-xs">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold">Simpan Tugas</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Crew Modal -->
+    <div id="crewModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md p-6 rounded-2xl border border-brand-border space-y-4">
+            <h3 class="text-lg font-bold text-white">Tambah Anggota Kru</h3>
+            <form id="crewForm" onsubmit="handleCrewSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Nama Lengkap</label>
+                    <input type="text" id="crewName" required class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 mb-1">Email</label>
+                    <input type="email" id="crewEmail" required class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Peran (Role)</label>
+                        <select id="crewRole" class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                            <option value="Super Admin">Super Admin</option>
+                            <option value="Project Manager">Project Manager</option>
+                            <option value="Stage Manager">Stage Manager</option>
+                            <option value="Koordinator Divisi">Koordinator Divisi</option>
+                            <option value="Crew">Crew</option>
+                            <option value="Klien">Klien</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Divisi</label>
+                        <select id="crewDiv" class="w-full bg-slate-900 border border-brand-border rounded-lg p-2.5 text-sm text-white">
+                            <option value="Event & Stage">Event & Stage</option>
+                            <option value="Dekorasi">Dekorasi</option>
+                            <option value="Artis & Talent">Artis & Talent</option>
+                            <option value="Teknik">Teknik</option>
+                            <option value="Konsumsi">Konsumsi</option>
+                            <option value="Logistik">Logistik</option>
+                            <option value="Dokumentasi">Dokumentasi</option>
+                            <option value="Safety & Security">Safety & Security</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-2 pt-3">
+                    <button type="button" onclick="closeCrewModal()" class="px-4 py-2 bg-slate-800 text-gray-300 rounded-lg text-xs">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold">Simpan Kru</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Javascript Application Logic -->
+    <script>
+        // ==========================================
+        // INITIAL MOCK DATA & APP STATE & API CONFIG
+        // ==========================================
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzn3P10zqi0ojT2nJNwabFKxLJefSend4dT4fRzcX57uqpbLnoptBysUEmsXFLe00g5/exec"; 
+        // 💡 Ganti string di atas dengan URL Web App hasil Deploy Google Apps Script Anda.
+
+        const DEFAULT_PROJECTS = [
+            {
+                ProjectID: "PRJ-001",
+                NamaProyek: "Nusantara Music Festival 2026",
+                Klien: "PT Harmoni Bangsa",
+                TanggalMulai: "2026-11-15",
+                TanggalSelesai: "2026-11-16",
+                Lokasi: "Gelora Bung Karno, Jakarta",
+                Status: "Live"
+            },
+            {
+                ProjectID: "PRJ-002",
+                NamaProyek: "Grand Launching Tech Summit",
+                Klien: "Inovasi Nusantara Corp",
+                TanggalMulai: "2026-12-01",
+                TanggalSelesai: "2026-12-01",
+                Lokasi: "Convention Center, Bali",
+                Status: "In Progress"
+            }
+        ];
+
+        const DEFAULT_RUNDOWN = [
+            {
+                RundownID: "RD-101",
+                ProjectID: "PRJ-001",
+                WaktuMulai: "18:00",
+                DurasiMenit: 30,
+                WaktuSelesai: "18:30",
+                NamaKegiatan: "Open Gate & Registrasi Pengunjung",
+                Divisi: "Safety & Security",
+                PIC: "Budi Santoso",
+                Lokasi: "Main Gate",
+                Catatan: "Pastikan pemindai tiket online standby",
+                Status: "Selesai"
+            },
+            {
+                RundownID: "RD-102",
+                ProjectID: "PRJ-001",
+                WaktuMulai: "18:30",
+                DurasiMenit: 15,
+                WaktuSelesai: "18:45",
+                NamaKegiatan: "Opening Ceremony & Tarian Sambutan",
+                Divisi: "Event & Stage",
+                PIC: "Siti Rahma",
+                Lokasi: "Main Stage",
+                Catatan: "Lighting cue #2, Smoke effect ON",
+                Status: "Sedang Berlangsung"
+            },
+            {
+                RundownID: "RD-103",
+                ProjectID: "PRJ-001",
+                WaktuMulai: "18:45",
+                DurasiMenit: 45,
+                WaktuSelesai: "19:30",
+                NamaKegiatan: "Performance Artis Utama: Band A",
+                Divisi: "Artis & Talent",
+                PIC: "Andi Wijaya",
+                Lokasi: "Main Stage",
+                Catatan: "Soundcheck sudah ok pukul 16:00",
+                Status: "Belum Dimulai"
+            }
+        ];
+
+        const DEFAULT_TASKS = [
+            {
+                TaskID: "TSK-201",
+                ProjectID: "PRJ-001",
+                Divisi: "Teknik",
+                JudulTugas: "Cek Instalasi Sound System & LED Screen 20x5m",
+                Deskripsi: "Pengujian frekuensi mik & kalibrasi kecerahan LED",
+                PIC: "Rian Sound",
+                Deadline: "2026-11-15",
+                Prioritas: "Tinggi",
+                Status: "Selesai"
+            },
+            {
+                TaskID: "TSK-202",
+                ProjectID: "PRJ-001",
+                Divisi: "Konsumsi",
+                JudulTugas: "Distribusi 150 Porsi Catering Artis & VIP",
+                Deskripsi: "Antar ke holding room lantai 2",
+                PIC: "Dewi Catering",
+                Deadline: "2026-11-15",
+                Prioritas: "Sedang",
+                Status: "Dikerjakan"
+            },
+            {
+                TaskID: "TSK-203",
+                ProjectID: "PRJ-001",
+                Divisi: "Decor",
+                JudulTugas: "Pemasangan Backdrop Photobooth Sponsor",
+                Deskripsi: "Ukuran 4x3 meter di selasar hall B",
+                PIC: "Agus Dekor",
+                Deadline: "2026-11-15",
+                Prioritas: "Tinggi",
+                Status: "Terhambat"
+            }
+        ];
+
+        const DEFAULT_CREW = [
+            { UserID: "USR-01", Nama: "Rian Pratama", Email: "rian@eocentral.id", Role: "Super Admin", Divisi: "Event & Stage", Status: "Aktif" },
+            { UserID: "USR-02", Nama: "Siti Rahma", Email: "siti@eocentral.id", Role: "Stage Manager", Divisi: "Event & Stage", Status: "Aktif" },
+            { UserID: "USR-03", Nama: "Andi Wijaya", Email: "andi@eocentral.id", Role: "Koordinator Divisi", Divisi: "Artis & Talent", Status: "Aktif" }
+        ];
+
+        let state = {
+            activeProjectId: "PRJ-001",
+            isSimulatedOffline: false,
+            projects: [],
+            rundowns: [],
+            tasks: [],
+            crew: [],
+            liveRundownIndex: 1
+        };
+
+        let tasksStatusChartObj = null;
+        let divisionTaskChartObj = null;
+
+        // Initialize App on DOM Load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadStateFromStorage();
+            initRealTimeClock();
+            renderActiveProjectDropdowns();
+            switchTab('tab-dashboard');
+        });
+
+        function loadStateFromStorage() {
+            state.projects = JSON.parse(localStorage.getItem('eo_projects')) || DEFAULT_PROJECTS;
+            state.rundowns = JSON.parse(localStorage.getItem('eo_rundowns')) || DEFAULT_RUNDOWN;
+            state.tasks = JSON.parse(localStorage.getItem('eo_tasks')) || DEFAULT_TASKS;
+            state.crew = JSON.parse(localStorage.getItem('eo_crew')) || DEFAULT_CREW;
+            saveStateToStorage();
+        }
+
+        function saveStateToStorage() {
+            localStorage.setItem('eo_projects', JSON.stringify(state.projects));
+            localStorage.setItem('eo_rundowns', JSON.stringify(state.rundowns));
+            localStorage.setItem('eo_tasks', JSON.stringify(state.tasks));
+            localStorage.setItem('eo_crew', JSON.stringify(state.crew));
+        }
+
+        function initRealTimeClock() {
+            setInterval(() => {
+                const now = new Date();
+                const str = now.toTimeString().split(' ')[0];
+                const el = document.getElementById('clockDisplay');
+                if (el) el.innerText = str;
+            }, 1000);
+        }
+
+        // ==========================================
+        // TAB SWITCHING & UI NAVIGATION
+        // ==========================================
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            const target = document.getElementById(tabId);
+            if (target) target.classList.remove('hidden');
+
+            // Sidebar styles update
+            document.querySelectorAll('.nav-link').forEach(btn => {
+                btn.classList.remove('bg-indigo-600/90', 'text-white', 'shadow-lg');
+                btn.classList.add('text-gray-400');
+            });
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-gray-400');
+                activeBtn.classList.add('bg-indigo-600/90', 'text-white', 'shadow-lg');
+            }
+
+            // Render view dynamic content
+            if (tabId === 'tab-dashboard') renderDashboard();
+            if (tabId === 'tab-projects') renderProjects();
+            if (tabId === 'tab-rundown') renderRundown();
+            if (tabId === 'tab-tasks') renderTasks();
+            if (tabId === 'tab-crew') renderCrew();
+            if (tabId === 'tab-field') renderFieldMode();
+        }
+
+        function switchGasCodeTab(codeKey) {
+            document.querySelectorAll('.gas-code-pane').forEach(el => el.classList.add('hidden'));
+            const target = document.getElementById(`gas-content-${codeKey}`);
+            if (target) target.classList.remove('hidden');
+
+            // Button highlights
+            ['code-gs', 'sheet-db', 'manifest-json', 'sw-js'].forEach(k => {
+                const btn = document.getElementById(`subnav-${k}`);
+                if (btn) {
+                    btn.classList.remove('text-amber-400', 'border-b-2', 'border-amber-400');
+                    btn.classList.add('text-gray-400');
+                }
+            });
+            const activeBtn = document.getElementById(`subnav-${codeKey}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-gray-400');
+                activeBtn.classList.add('text-amber-400', 'border-b-2', 'border-amber-400');
+            }
+        }
+
+        function renderActiveProjectDropdowns() {
+            const options = state.projects.map(p => `<option value="${p.ProjectID}" ${p.ProjectID === state.activeProjectId ? 'selected' : ''}>${p.NamaProyek}</option>`).join('');
+            document.getElementById('activeProjectSelect').innerHTML = options;
+            document.getElementById('activeProjectSelectMobile').innerHTML = options;
+        }
+
+        function changeActiveProject(projId) {
+            state.activeProjectId = projId;
+            renderActiveProjectDropdowns();
+            renderDashboard();
+            renderRundown();
+            renderTasks();
+        }
+
+        // ==========================================
+        // DASHBOARD & CHARTS LOGIC
+        // ==========================================
+        function renderDashboard() {
+            const activeProj = state.projects.find(p => p.ProjectID === state.activeProjectId) || state.projects[0];
+            if (activeProj) {
+                document.getElementById('dashProjectTitle').innerText = activeProj.NamaProyek;
+                document.getElementById('dashProjectSubtitle').innerText = `Klien: ${activeProj.Klien} | Lokasi: ${activeProj.Lokasi}`;
+            }
+
+            // Stats
+            const projRundowns = state.rundowns.filter(r => r.ProjectID === state.activeProjectId);
+            document.getElementById('statRundownCount').innerText = projRundowns.length;
+            const totalMins = projRundowns.reduce((acc, r) => acc + parseInt(r.DurasiMenit || 0), 0);
+            document.getElementById('statRundownDuration').innerText = `${(totalMins / 60).toFixed(1)} Jam Terjadwal`;
+
+            const projTasks = state.tasks.filter(t => t.ProjectID === state.activeProjectId);
+            const completedTasks = projTasks.filter(t => t.Status === 'Selesai').length;
+            const progress = projTasks.length ? Math.round((completedTasks / projTasks.length) * 100) : 0;
+            document.getElementById('statTaskProgress').innerText = `${progress}%`;
+            document.getElementById('statTaskRatio').innerText = `${completedTasks} dari ${projTasks.length} selesai`;
+
+            const pendingUrgent = projTasks.filter(t => t.Status === 'Terhambat' || t.Prioritas === 'Tinggi').length;
+            document.getElementById('statPendingTasks').innerText = pendingUrgent;
+            document.getElementById('statCrewCount').innerText = state.crew.length;
+
+            // Live Rundown Card
+            renderLiveRundownCard(projRundowns);
+
+            // Render Chart.js
+            renderDashboardCharts(projTasks);
+        }
+
+        function renderLiveRundownCard(projRundowns) {
+            const liveCard = document.getElementById('liveRundownCard');
+            if (!projRundowns.length) {
+                liveCard.innerHTML = `<p class="text-gray-400 text-sm">Belum ada sesi rundown untuk proyek ini.</p>`;
+                return;
+            }
+
+            const current = projRundowns[state.liveRundownIndex] || projRundowns[0];
+            liveCard.innerHTML = `
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                    <span class="px-2.5 py-1 bg-emerald-900/60 text-emerald-300 border border-emerald-700/50 rounded-lg text-xs font-mono font-bold w-fit">
+                        SESI BERLANGSUNG (${current.WaktuMulai} - ${current.WaktuSelesai})
+                    </span>
+                    <span class="text-xs text-indigo-300 font-semibold"><i class="bi bi-geo-alt mr-1"></i>${current.Lokasi || 'Main Stage'}</span>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-1">${current.NamaKegiatan}</h3>
+                <p class="text-xs text-gray-400 mb-2">Divisi: <strong class="text-indigo-300">${current.Divisi}</strong> | PIC: <strong class="text-white">${current.PIC}</strong></p>
+                <div class="p-2.5 bg-slate-950/80 rounded-lg text-xs text-amber-300/90 border border-amber-500/20">
+                    <i class="bi bi-info-circle mr-1"></i> ${current.Catatan || 'Tidak ada catatan khusus.'}
+                </div>
+            `;
+        }
+
+        function setStageControlState(type) {
+            if (type === 'DELAY') {
+                Swal.fire({
+                    title: 'Tunda Rundown',
+                    text: 'Tambahkan delay waktu +10 menit untuk seluruh sesi berikutnya?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Tunda 10m',
+                    cancelButtonText: 'Batal'
+                }).then(res => {
+                    if (res.isConfirmed) {
+                        state.rundowns = state.rundowns.map(r => {
+                            if (r.ProjectID === state.activeProjectId) {
+                                let [h, m] = r.WaktuMulai.split(':').map(Number);
+                                m += 10;
+                                if (m >= 60) { h += Math.floor(m / 60); m %= 60; }
+                                r.WaktuMulai = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+                                // recalculate end
+                                let endM = m + parseInt(r.DurasiMenit);
+                                let endH = h;
+                                if (endM >= 60) { endH += Math.floor(endM / 60); endM %= 60; }
+                                r.WaktuSelesai = `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`;
+                            }
+                            return r;
+                        });
+                        saveStateToStorage();
+                        renderRundown();
+                        renderDashboard();
+                        Swal.fire('Diperbarui!', 'Seluruh jadwal rundown disesuaikan.', 'success');
+                    }
+                });
+            } else if (type === 'ON_TIME') {
+                Swal.fire('Status Normal', 'Jadwal panggung ditandai sesuai estimasi awal.', 'info');
+            }
+        }
+
+        function nextRundownItem() {
+            const projRundowns = state.rundowns.filter(r => r.ProjectID === state.activeProjectId);
+            if (state.liveRundownIndex < projRundowns.length - 1) {
+                state.liveRundownIndex++;
+            } else {
+                state.liveRundownIndex = 0;
+            }
+            renderDashboard();
+        }
+
+        function renderDashboardCharts(projTasks) {
+            // Chart 1: Status Distribution
+            const statuses = ['Belum Dimulai', 'Dikerjakan', 'Menunggu Persetujuan', 'Selesai', 'Terhambat'];
+            const counts = statuses.map(s => projTasks.filter(t => t.Status === s).length);
+
+            const ctx1 = document.getElementById('tasksStatusChart').getContext('2d');
+            if (tasksStatusChartObj) tasksStatusChartObj.destroy();
+            tasksStatusChartObj = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: statuses,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: ['#64748b', '#3b82f6', '#a855f7', '#10b981', '#f43f5e']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } }
+                }
+            });
+
+            // Chart 2: Division Load
+            const divisions = ['Event & Stage', 'Dekorasi', 'Artis & Talent', 'Teknik', 'Konsumsi', 'Logistik', 'Dokumentasi', 'Safety & Security'];
+            const divCounts = divisions.map(d => projTasks.filter(t => t.Divisi === d).length);
+
+            const ctx2 = document.getElementById('divisionTaskChart').getContext('2d');
+            if (divisionTaskChartObj) divisionTaskChartObj.destroy();
+            divisionTaskChartObj = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['Stage', 'Dekor', 'Artis', 'Teknik', 'Konsumsi', 'Logistik', 'Dokumentasi', 'Safety'],
+                    datasets: [{
+                        label: 'Jumlah Tugas',
+                        data: divCounts,
+                        backgroundColor: '#6366f1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: '#94a3b8', font: { size: 9 } } },
+                        y: { ticks: { color: '#94a3b8', precision: 0 } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // ==========================================
+        // RUNDOWN BUILDER LOGIC & OVERLAP DETECT
+        // ==========================================
+        function renderRundown() {
+            const list = state.rundowns.filter(r => r.ProjectID === state.activeProjectId);
+            const tbody = document.getElementById('rundownTableBody');
+
+            // Detect conflicts
+            const conflicts = detectScheduleConflicts(list);
+            const alertBox = document.getElementById('conflictAlertBox');
+            if (conflicts.length > 0) {
+                alertBox.classList.remove('hidden');
+                document.getElementById('conflictAlertText').innerHTML = conflicts.map(c => `• Sesi <strong>"${c.item1}"</strong> bentrok jam dengan <strong>"${c.item2}"</strong> (${c.time})`).join('<br>');
+            } else {
+                alertBox.classList.add('hidden');
+            }
+
+            if (!list.length) {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-gray-500 text-xs">Belum ada item rundown. Klik "Tambah Sesi".</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = list.map((item, idx) => `
+                <tr class="hover:bg-slate-800/50 transition">
+                    <td class="py-3 px-4 font-mono text-xs text-indigo-300 font-bold">
+                        <div class="flex items-center space-x-1">
+                            <span>#${idx + 1}</span>
+                            <div class="flex flex-col">
+                                <button onclick="moveRundownOrder(${idx}, -1)" class="text-gray-500 hover:text-white text-[10px]"><i class="bi bi-chevron-up"></i></button>
+                                <button onclick="moveRundownOrder(${idx}, 1)" class="text-gray-500 hover:text-white text-[10px]"><i class="bi bi-chevron-down"></i></button>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 font-mono font-semibold text-white">
+                        ${item.WaktuMulai} - ${item.WaktuSelesai}
+                        <span class="block text-[10px] text-gray-400 font-sans">(${item.DurasiMenit} menit)</span>
+                    </td>
+                    <td class="py-3 px-4 font-semibold text-white">
+                        ${item.NamaKegiatan}
+                        <span class="block text-[10px] text-gray-400 font-normal">${item.Catatan || '-'}</span>
+                    </td>
+                    <td class="py-3 px-4 text-xs">
+                        <span class="inline-block px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/40 font-medium">${item.Divisi}</span>
+                        <span class="block text-[11px] text-gray-300 mt-0.5">PIC: ${item.PIC}</span>
+                    </td>
+                    <td class="py-3 px-4 text-xs text-gray-300">${item.Lokasi || 'Main Stage'}</td>
+                    <td class="py-3 px-4 text-xs">
+                        <span class="px-2 py-1 rounded-full text-[10px] font-bold ${item.Status === 'Selesai' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-gray-300'}">
+                            ${item.Status || 'Belum'}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-right space-x-1">
+                        <button onclick="editRundown('${item.RundownID}')" class="p-1.5 text-gray-400 hover:text-indigo-400"><i class="bi bi-pencil-square"></i></button>
+                        <button onclick="deleteRundown('${item.RundownID}')" class="p-1.5 text-gray-400 hover:text-rose-400"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function detectScheduleConflicts(list) {
+            let conflicts = [];
+            for (let i = 0; i < list.length; i++) {
+                for (let j = i + 1; j < list.length; j++) {
+                    const r1 = list[i];
+                    const r2 = list[j];
+                    if (r1.Lokasi === r2.Lokasi) {
+                        if ((r1.WaktuMulai < r2.WaktuSelesai) && (r1.WaktuSelesai > r2.WaktuMulai)) {
+                            conflicts.push({
+                                item1: r1.NamaKegiatan,
+                                item2: r2.NamaKegiatan,
+                                time: `${r1.WaktuMulai} vs ${r2.WaktuMulai}`
+                            });
+                        }
+                    }
+                }
+            }
+            return conflicts;
+        }
+
+        function calculateRundownEndTime() {
+            const start = document.getElementById('rdStartTime').value;
+            const dur = parseInt(document.getElementById('rdDuration').value || 0);
+            if (!start || !dur) return;
+
+            let [h, m] = start.split(':').map(Number);
+            m += dur;
+            if (m >= 60) {
+                h += Math.floor(m / 60);
+                m %= 60;
+            }
+            const formatted = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            document.getElementById('rdEndTimeDisplay').value = formatted;
+        }
+
+        function moveRundownOrder(index, direction) {
+            const list = state.rundowns.filter(r => r.ProjectID === state.activeProjectId);
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= list.length) return;
+
+            const temp = list[index];
+            list[index] = list[targetIndex];
+            list[targetIndex] = temp;
+
+            state.rundowns = state.rundowns.filter(r => r.ProjectID !== state.activeProjectId).concat(list);
+            saveStateToStorage();
+            renderRundown();
+        }
+
+        function openRundownModal(item = null) {
+            document.getElementById('rundownForm').reset();
+            if (item) {
+                document.getElementById('rdId').value = item.RundownID;
+                document.getElementById('rdStartTime').value = item.WaktuMulai;
+                document.getElementById('rdDuration').value = item.DurasiMenit;
+                document.getElementById('rdTitle').value = item.NamaKegiatan;
+                document.getElementById('rdDivision').value = item.Divisi;
+                document.getElementById('rdPic').value = item.PIC;
+                document.getElementById('rdLocation').value = item.Lokasi;
+                document.getElementById('rdNotes').value = item.Catatan;
+                calculateRundownEndTime();
+            } else {
+                document.getElementById('rdId').value = '';
+            }
+            document.getElementById('rundownModal').classList.remove('hidden');
+        }
+
+        function closeRundownModal() {
+            document.getElementById('rundownModal').classList.add('hidden');
+        }
+
+        function handleRundownSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('rdId').value;
+            const newItem = {
+                RundownID: id || 'RD-' + Date.now(),
+                ProjectID: state.activeProjectId,
+                WaktuMulai: document.getElementById('rdStartTime').value,
+                DurasiMenit: parseInt(document.getElementById('rdDuration').value),
+                WaktuSelesai: document.getElementById('rdEndTimeDisplay').value,
+                NamaKegiatan: document.getElementById('rdTitle').value,
+                Divisi: document.getElementById('rdDivision').value,
+                PIC: document.getElementById('rdPic').value,
+                Lokasi: document.getElementById('rdLocation').value,
+                Catatan: document.getElementById('rdNotes').value,
+                Status: 'Belum Dimulai'
+            };
+
+            if (id) {
+                state.rundowns = state.rundowns.map(r => r.RundownID === id ? newItem : r);
+            } else {
+                state.rundowns.push(newItem);
+            }
+            saveStateToStorage();
+            closeRundownModal();
+            renderRundown();
+            renderDashboard();
+            Swal.fire('Tersimpan!', 'Sesi rundown berhasil diperbarui.', 'success');
+        }
+
+        function deleteRundown(id) {
+            Swal.fire({
+                title: 'Hapus Sesi?',
+                text: 'Sesi ini akan dihapus dari rundown.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Hapus'
+            }).then(res => {
+                if (res.isConfirmed) {
+                    state.rundowns = state.rundowns.filter(r => r.RundownID !== id);
+                    saveStateToStorage();
+                    renderRundown();
+                    renderDashboard();
+                }
+            });
+        }
+
+        // EXPORT RUNDOWN PDF / EXCEL
+        function exportRundownPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text(`Rundown Event - ${state.activeProjectId}`, 14, 15);
+
+            const list = state.rundowns.filter(r => r.ProjectID === state.activeProjectId);
+            const body = list.map((r, i) => [i + 1, `${r.WaktuMulai} - ${r.WaktuSelesai}`, r.NamaKegiatan, r.Divisi, r.PIC, r.Lokasi]);
+
+            doc.autoTable({
+                startY: 20,
+                head: [['No', 'Waktu', 'Kegiatan', 'Divisi', 'PIC', 'Lokasi']],
+                body: body
+            });
+            doc.save(`Rundown_${state.activeProjectId}.pdf`);
+        }
+
+        function exportRundownExcel() {
+            const list = state.rundowns.filter(r => r.ProjectID === state.activeProjectId);
+            const ws = XLSX.utils.json_to_sheet(list);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Rundown");
+            XLSX.writeFile(wb, `Rundown_${state.activeProjectId}.xlsx`);
+        }
+
+        // ==========================================
+        // PROJECTS MANAGEMENT LOGIC
+        // ==========================================
+        function renderProjects() {
+            const grid = document.getElementById('projectsGrid');
+            grid.innerHTML = state.projects.map(p => `
+                <div class="glass-panel p-5 rounded-2xl border border-brand-border space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold ${p.Status === 'Live' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-gray-300'}">
+                            ${p.Status}
+                        </span>
+                        <div class="space-x-1">
+                            <button onclick="editProject('${p.ProjectID}')" class="text-gray-400 hover:text-indigo-400 text-xs"><i class="bi bi-pencil-square"></i></button>
+                            <button onclick="deleteProject('${p.ProjectID}')" class="text-gray-400 hover:text-rose-400 text-xs"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </div>
+                    <h3 class="font-bold text-white text-lg">${p.NamaProyek}</h3>
+                    <div class="text-xs text-gray-400 space-y-1">
+                        <p><i class="bi bi-building mr-1.5"></i>Klien: ${p.Klien}</p>
+                        <p><i class="bi bi-calendar-range mr-1.5"></i>${p.TanggalMulai} s/d ${p.TanggalSelesai}</p>
+                        <p><i class="bi bi-geo-alt mr-1.5"></i>${p.Lokasi}</p>
+                    </div>
+                    <div class="pt-2">
+                        <button onclick="changeActiveProject('${p.ProjectID}'); switchTab('tab-dashboard');" class="w-full py-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold">
+                            Buka Workspace Proyek
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openProjectModal(p = null) {
+            document.getElementById('projectForm').reset();
+            if (p) {
+                document.getElementById('projId').value = p.ProjectID;
+                document.getElementById('projName').value = p.NamaProyek;
+                document.getElementById('projClient').value = p.Klien;
+                document.getElementById('projStartDate').value = p.TanggalMulai;
+                document.getElementById('projEndDate').value = p.TanggalSelesai;
+                document.getElementById('projLocation').value = p.Lokasi;
+                document.getElementById('projStatus').value = p.Status;
+            } else {
+                document.getElementById('projId').value = '';
+            }
+            document.getElementById('projectModal').classList.remove('hidden');
+        }
+
+        function closeProjectModal() {
+            document.getElementById('projectModal').classList.add('hidden');
+        }
+
+        function handleProjectSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('projId').value;
+            const newP = {
+                ProjectID: id || 'PRJ-' + Date.now(),
+                NamaProyek: document.getElementById('projName').value,
+                Klien: document.getElementById('projClient').value,
+                TanggalMulai: document.getElementById('projStartDate').value,
+                TanggalSelesai: document.getElementById('projEndDate').value,
+                Lokasi: document.getElementById('projLocation').value,
+                Status: document.getElementById('projStatus').value
+            };
+
+            if (id) {
+                state.projects = state.projects.map(p => p.ProjectID === id ? newP : p);
+            } else {
+                state.projects.push(newP);
+            }
+            saveStateToStorage();
+            closeProjectModal();
+            renderProjects();
+            renderActiveProjectDropdowns();
+        }
+
+        function deleteProject(id) {
+            if (state.projects.length <= 1) {
+                Swal.fire('Error', 'Minimal harus ada 1 proyek aktif!', 'error');
+                return;
+            }
+            Swal.fire({
+                title: 'Hapus Proyek?',
+                text: 'Proyek dan seluruh data terkait akan dihapus.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Hapus'
+            }).then(res => {
+                if (res.isConfirmed) {
+                    state.projects = state.projects.filter(p => p.ProjectID !== id);
+                    if (state.activeProjectId === id) state.activeProjectId = state.projects[0].ProjectID;
+                    saveStateToStorage();
+                    renderProjects();
+                    renderActiveProjectDropdowns();
+                }
+            });
+        }
+
+        // ==========================================
+        // TASKS / JOBDESK LOGIC
+        // ==========================================
+        function renderTasks() {
+            const search = document.getElementById('taskSearchInput')?.value.toLowerCase() || '';
+            const divFilter = document.getElementById('filterDivisionSelect')?.value || 'ALL';
+            const statusFilter = document.getElementById('filterStatusSelect')?.value || 'ALL';
+
+            let list = state.tasks.filter(t => t.ProjectID === state.activeProjectId);
+
+            if (search) {
+                list = list.filter(t => t.JudulTugas.toLowerCase().includes(search) || t.PIC.toLowerCase().includes(search));
+            }
+            if (divFilter !== 'ALL') {
+                list = list.filter(t => t.Divisi === divFilter);
+            }
+            if (statusFilter !== 'ALL') {
+                list = list.filter(t => t.Status === statusFilter);
+            }
+
+            const container = document.getElementById('tasksList');
+            if (!list.length) {
+                container.innerHTML = `<div class="col-span-full text-center py-8 text-gray-500 text-sm">Tidak ada jobdesk yang sesuai filter.</div>`;
+                return;
+            }
+
+            container.innerHTML = list.map(t => `
+                <div class="glass-panel p-4 rounded-xl border border-brand-border space-y-3 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-800/40">${t.Divisi}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${t.Prioritas === 'Tinggi' ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-slate-800 text-gray-400'}">${t.Prioritas}</span>
+                        </div>
+                        <h4 class="font-bold text-white text-sm mb-1">${t.JudulTugas}</h4>
+                        <p class="text-xs text-gray-400 line-clamp-2">${t.Deskripsi || '-'}</p>
+                    </div>
+                    <div class="pt-2 border-t border-brand-border space-y-2">
+                        <div class="flex items-center justify-between text-xs text-gray-300">
+                            <span><i class="bi bi-person mr-1"></i>${t.PIC}</span>
+                            <span class="text-[11px] text-gray-400">${t.Deadline}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <select onchange="updateTaskStatus('${t.TaskID}', this.value)" class="bg-slate-900 border border-brand-border text-xs text-indigo-200 rounded p-1 font-medium">
+                                <option value="Belum Dimulai" ${t.Status === 'Belum Dimulai' ? 'selected' : ''}>Belum Dimulai</option>
+                                <option value="Dikerjakan" ${t.Status === 'Dikerjakan' ? 'selected' : ''}>Dikerjakan</option>
+                                <option value="Menunggu Persetujuan" ${t.Status === 'Menunggu Persetujuan' ? 'selected' : ''}>Menunggu Persetujuan</option>
+                                <option value="Selesai" ${t.Status === 'Selesai' ? 'selected' : ''}>Selesai</option>
+                                <option value="Terhambat" ${t.Status === 'Terhambat' ? 'selected' : ''}>Terhambat</option>
+                            </select>
+                            <button onclick="deleteTask('${t.TaskID}')" class="text-gray-500 hover:text-rose-400 text-xs"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateTaskStatus(taskId, status) {
+            state.tasks = state.tasks.map(t => t.TaskID === taskId ? { ...t, Status: status } : t);
+            saveStateToStorage();
+            renderDashboard();
+        }
+
+        function openTaskModal(t = null) {
+            document.getElementById('taskForm').reset();
+            if (t) {
+                document.getElementById('taskId').value = t.TaskID;
+                document.getElementById('taskTitle').value = t.JudulTugas;
+                document.getElementById('taskDiv').value = t.Divisi;
+                document.getElementById('taskPic').value = t.PIC;
+                document.getElementById('taskDeadline').value = t.Deadline;
+                document.getElementById('taskPriority').value = t.Prioritas;
+                document.getElementById('taskDesc').value = t.Deskripsi;
+                document.getElementById('taskStatus').value = t.Status;
+            } else {
+                document.getElementById('taskId').value = '';
+            }
+            document.getElementById('taskModal').classList.remove('hidden');
+        }
+
+        function closeTaskModal() {
+            document.getElementById('taskModal').classList.add('hidden');
+        }
+
+        function handleTaskSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('taskId').value;
+            const newTask = {
+                TaskID: id || 'TSK-' + Date.now(),
+                ProjectID: state.activeProjectId,
+                JudulTugas: document.getElementById('taskTitle').value,
+                Divisi: document.getElementById('taskDiv').value,
+                PIC: document.getElementById('taskPic').value,
+                Deadline: document.getElementById('taskDeadline').value,
+                Prioritas: document.getElementById('taskPriority').value,
+                Deskripsi: document.getElementById('taskDesc').value,
+                Status: document.getElementById('taskStatus').value
+            };
+
+            if (id) {
+                state.tasks = state.tasks.map(t => t.TaskID === id ? newTask : t);
+            } else {
+                state.tasks.push(newTask);
+            }
+            saveStateToStorage();
+            closeTaskModal();
+            renderTasks();
+            renderDashboard();
+        }
+
+        function deleteTask(id) {
+            state.tasks = state.tasks.filter(t => t.TaskID !== id);
+            saveStateToStorage();
+            renderTasks();
+            renderDashboard();
+        }
+
+        // ==========================================
+        // CREW & FIELD MODE LOGIC
+        // ==========================================
+        function renderCrew() {
+            const tbody = document.getElementById('crewTableBody');
+            tbody.innerHTML = state.crew.map(c => `
+                <tr class="hover:bg-slate-800/50 transition">
+                    <td class="py-3 px-4 font-semibold text-white">${c.Nama}</td>
+                    <td class="py-3 px-4 text-xs text-gray-400">${c.Email}</td>
+                    <td class="py-3 px-4 text-xs font-medium text-indigo-300">${c.Role}</td>
+                    <td class="py-3 px-4 text-xs text-gray-300">${c.Divisi}</td>
+                    <td class="py-3 px-4 text-xs"><span class="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px]">${c.Status}</span></td>
+                    <td class="py-3 px-4 text-right">
+                        <button onclick="deleteCrew('${c.UserID}')" class="text-gray-500 hover:text-rose-400 text-xs"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openCrewModal() {
+            document.getElementById('crewForm').reset();
+            document.getElementById('crewModal').classList.remove('hidden');
+        }
+
+        function closeCrewModal() {
+            document.getElementById('crewModal').classList.add('hidden');
+        }
+
+        function handleCrewSubmit(e) {
+            e.preventDefault();
+            const newC = {
+                UserID: 'USR-' + Date.now(),
+                Nama: document.getElementById('crewName').value,
+                Email: document.getElementById('crewEmail').value,
+                Role: document.getElementById('crewRole').value,
+                Divisi: document.getElementById('crewDiv').value,
+                Status: 'Aktif'
+            };
+            state.crew.push(newC);
+            saveStateToStorage();
+            closeCrewModal();
+            renderCrew();
+        }
+
+        function deleteCrew(id) {
+            state.crew = state.crew.filter(c => c.UserID !== id);
+            saveStateToStorage();
+            renderCrew();
+        }
+
+        function renderFieldMode() {
+            const projRundowns = state.rundowns.filter(r => r.ProjectID === state.activeProjectId);
+            const fieldRundown = document.getElementById('fieldRundownList');
+            fieldRundown.innerHTML = projRundowns.map(r => `
+                <div class="p-3 bg-slate-900 rounded-xl border border-slate-700 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-mono font-bold text-emerald-400">${r.WaktuMulai} - ${r.WaktuSelesai}</span>
+                        <h4 class="font-bold text-white text-sm">${r.NamaKegiatan}</h4>
+                        <span class="text-[11px] text-gray-400">PIC: ${r.PIC} (${r.Divisi})</span>
+                    </div>
+                    <span class="px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-bold">${r.Status}</span>
+                </div>
+            `).join('');
+
+            const projTasks = state.tasks.filter(t => t.ProjectID === state.activeProjectId);
+            const fieldTask = document.getElementById('fieldTaskList');
+            fieldTask.innerHTML = projTasks.map(t => `
+                <div class="p-3 bg-slate-900 rounded-xl border border-slate-700 flex items-center justify-between">
+                    <div>
+                        <h4 class="font-bold text-white text-sm">${t.JudulTugas}</h4>
+                        <span class="text-[11px] text-gray-400">${t.Divisi} - PIC: ${t.PIC}</span>
+                    </div>
+                    <button onclick="updateTaskStatus('${t.TaskID}', 'Selesai'); renderFieldMode();" class="px-3 py-1.5 ${t.Status === 'Selesai' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-gray-300'} rounded-lg text-xs font-bold">
+                        ${t.Status === 'Selesai' ? '✓ Selesai' : 'Tandai Selesai'}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function toggleSimulatedOffline() {
+            state.isSimulatedOffline = !state.isSimulatedOffline;
+            const badge = document.getElementById('syncBadge');
+            const text = document.getElementById('syncStatusText');
+            const btn = document.getElementById('btnOfflineSim');
+
+            if (state.isSimulatedOffline) {
+                badge.className = "cursor-pointer flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-950/80 text-amber-400 border border-amber-800/50 hover:bg-amber-900 transition";
+                text.innerText = "Offline (Local Queue)";
+                btn.innerText = "Hubungkan Kembali (Online)";
+            } else {
+                badge.className = "cursor-pointer flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/50 hover:bg-emerald-900 transition";
+                text.innerText = "Online (Synced)";
+                btn.innerText = "Simulasi Koneksi Terputus (Offline)";
+            }
+        }
+
+        function triggerManualSync() {
+            Swal.fire({
+                title: 'Sinkronisasi Data',
+                text: 'Menghubungkan ke Google Sheets backend...',
+                timer: 1000,
+                timerProgressBar: true,
+                didOpen: () => Swal.showLoading()
+            }).then(() => {
+                Swal.fire('Berhasil!', 'Data tersinkronisasi dengan Google Sheets.', 'success');
+            });
+        }
+
+        function triggerIncidentModal() {
+            Swal.fire({
+                title: 'Lapor Kendala Lapangan',
+                input: 'textarea',
+                inputPlaceholder: 'Tuliskan kendala / masalah di lapangan...',
+                showCancelButton: true,
+                confirmButtonText: 'Kirim Laporan'
+            }).then(res => {
+                if (res.isConfirmed && res.value) {
+                    Swal.fire('Laporan Terkirim', 'Koordinator dan PM telah menerima notifikasi.', 'success');
+                }
+            });
+        }
+
+        function copyCodeBlock(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                Swal.fire('Tersalin!', 'Kode berhasil disalin ke clipboard.', 'success');
+            });
+        }
+    </script>
 </body>
 </html>
