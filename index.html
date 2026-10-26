@@ -148,15 +148,15 @@
                                 Event Operations Live
                             </span>
                             <h1 id="dashProjectTitle" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                                Loading Proyek...
+                                Belum Ada Proyek Aktif
                             </h1>
                             <p id="dashProjectSubtitle" class="text-gray-400 text-sm mt-1">
-                                Klien: - | Lokasi: -
+                                Silakan buat proyek baru melalui menu Daftar Proyek atau tombol di bawah.
                             </p>
                         </div>
                         <div class="flex items-center space-x-3">
-                            <button onclick="triggerIncidentModal()" class="px-4 py-2.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 rounded-xl font-medium text-sm transition flex items-center">
-                                <i class="bi bi-exclamation-triangle-fill mr-2"></i> Laporkan Kendala
+                            <button onclick="openProjectModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium text-sm transition shadow-lg shadow-indigo-600/30 flex items-center">
+                                <i class="bi bi-plus-lg mr-2"></i> Buat Proyek Baru
                             </button>
                         </div>
                     </div>
@@ -212,7 +212,7 @@
                     </div>
 
                     <div id="liveRundownCard" class="bg-slate-900/90 p-4 rounded-xl border border-slate-700 mb-4">
-                        <!-- Populated by JS -->
+                        <p class="text-gray-400 text-sm">Belum ada proyek atau sesi rundown aktif.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-2 justify-end">
@@ -904,122 +904,23 @@ self.addEventListener('fetch', (e) => {
         // ==========================================
         // INITIAL MOCK DATA & APP STATE & API CONFIG
         // ==========================================
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzn3P10zqi0ojT2nJNwabFKxLJefSend4dT4fRzcX57uqpbLnoptBysUEmsXFLe00g5/exec"; 
+        const GAS_API_URL = "hhttps://script.google.com/macros/s/AKfycbzn3P10zqi0ojT2nJNwabFKxLJefSend4dT4fRzcX57uqpbLnoptBysUEmsXFLe00g5/exec"; 
         // 💡 Ganti string di atas dengan URL Web App hasil Deploy Google Apps Script Anda.
 
-        const DEFAULT_PROJECTS = [
-            {
-                ProjectID: "PRJ-001",
-                NamaProyek: "Nusantara Music Festival 2026",
-                Klien: "PT Harmoni Bangsa",
-                TanggalMulai: "2026-11-15",
-                TanggalSelesai: "2026-11-16",
-                Lokasi: "Gelora Bung Karno, Jakarta",
-                Status: "Live"
-            },
-            {
-                ProjectID: "PRJ-002",
-                NamaProyek: "Grand Launching Tech Summit",
-                Klien: "Inovasi Nusantara Corp",
-                TanggalMulai: "2026-12-01",
-                TanggalSelesai: "2026-12-01",
-                Lokasi: "Convention Center, Bali",
-                Status: "In Progress"
-            }
-        ];
-
-        const DEFAULT_RUNDOWN = [
-            {
-                RundownID: "RD-101",
-                ProjectID: "PRJ-001",
-                WaktuMulai: "18:00",
-                DurasiMenit: 30,
-                WaktuSelesai: "18:30",
-                NamaKegiatan: "Open Gate & Registrasi Pengunjung",
-                Divisi: "Safety & Security",
-                PIC: "Budi Santoso",
-                Lokasi: "Main Gate",
-                Catatan: "Pastikan pemindai tiket online standby",
-                Status: "Selesai"
-            },
-            {
-                RundownID: "RD-102",
-                ProjectID: "PRJ-001",
-                WaktuMulai: "18:30",
-                DurasiMenit: 15,
-                WaktuSelesai: "18:45",
-                NamaKegiatan: "Opening Ceremony & Tarian Sambutan",
-                Divisi: "Event & Stage",
-                PIC: "Siti Rahma",
-                Lokasi: "Main Stage",
-                Catatan: "Lighting cue #2, Smoke effect ON",
-                Status: "Sedang Berlangsung"
-            },
-            {
-                RundownID: "RD-103",
-                ProjectID: "PRJ-001",
-                WaktuMulai: "18:45",
-                DurasiMenit: 45,
-                WaktuSelesai: "19:30",
-                NamaKegiatan: "Performance Artis Utama: Band A",
-                Divisi: "Artis & Talent",
-                PIC: "Andi Wijaya",
-                Lokasi: "Main Stage",
-                Catatan: "Soundcheck sudah ok pukul 16:00",
-                Status: "Belum Dimulai"
-            }
-        ];
-
-        const DEFAULT_TASKS = [
-            {
-                TaskID: "TSK-201",
-                ProjectID: "PRJ-001",
-                Divisi: "Teknik",
-                JudulTugas: "Cek Instalasi Sound System & LED Screen 20x5m",
-                Deskripsi: "Pengujian frekuensi mik & kalibrasi kecerahan LED",
-                PIC: "Rian Sound",
-                Deadline: "2026-11-15",
-                Prioritas: "Tinggi",
-                Status: "Selesai"
-            },
-            {
-                TaskID: "TSK-202",
-                ProjectID: "PRJ-001",
-                Divisi: "Konsumsi",
-                JudulTugas: "Distribusi 150 Porsi Catering Artis & VIP",
-                Deskripsi: "Antar ke holding room lantai 2",
-                PIC: "Dewi Catering",
-                Deadline: "2026-11-15",
-                Prioritas: "Sedang",
-                Status: "Dikerjakan"
-            },
-            {
-                TaskID: "TSK-203",
-                ProjectID: "PRJ-001",
-                Divisi: "Decor",
-                JudulTugas: "Pemasangan Backdrop Photobooth Sponsor",
-                Deskripsi: "Ukuran 4x3 meter di selasar hall B",
-                PIC: "Agus Dekor",
-                Deadline: "2026-11-15",
-                Prioritas: "Tinggi",
-                Status: "Terhambat"
-            }
-        ];
-
-        const DEFAULT_CREW = [
-            { UserID: "USR-01", Nama: "Rian Pratama", Email: "rian@eocentral.id", Role: "Super Admin", Divisi: "Event & Stage", Status: "Aktif" },
-            { UserID: "USR-02", Nama: "Siti Rahma", Email: "siti@eocentral.id", Role: "Stage Manager", Divisi: "Event & Stage", Status: "Aktif" },
-            { UserID: "USR-03", Nama: "Andi Wijaya", Email: "andi@eocentral.id", Role: "Koordinator Divisi", Divisi: "Artis & Talent", Status: "Aktif" }
-        ];
+        // Kosongkan data default agar aplikasi bersih tanpa proyek bawaan
+        const DEFAULT_PROJECTS = [];
+        const DEFAULT_RUNDOWN = [];
+        const DEFAULT_TASKS = [];
+        const DEFAULT_CREW = [];
 
         let state = {
-            activeProjectId: "PRJ-001",
+            activeProjectId: null,
             isSimulatedOffline: false,
             projects: [],
             rundowns: [],
             tasks: [],
             crew: [],
-            liveRundownIndex: 1
+            liveRundownIndex: 0
         };
 
         let tasksStatusChartObj = null;
@@ -1038,6 +939,10 @@ self.addEventListener('fetch', (e) => {
             state.rundowns = JSON.parse(localStorage.getItem('eo_rundowns')) || DEFAULT_RUNDOWN;
             state.tasks = JSON.parse(localStorage.getItem('eo_tasks')) || DEFAULT_TASKS;
             state.crew = JSON.parse(localStorage.getItem('eo_crew')) || DEFAULT_CREW;
+            
+            if (state.projects.length > 0 && !state.activeProjectId) {
+                state.activeProjectId = state.projects[0].ProjectID;
+            }
             saveStateToStorage();
         }
 
@@ -1106,9 +1011,19 @@ self.addEventListener('fetch', (e) => {
         }
 
         function renderActiveProjectDropdowns() {
+            const selectEl = document.getElementById('activeProjectSelect');
+            const selectMobileEl = document.getElementById('activeProjectSelectMobile');
+            
+            if (!state.projects.length) {
+                const emptyOpt = `<option value="">-- Belum Ada Proyek --</option>`;
+                if (selectEl) selectEl.innerHTML = emptyOpt;
+                if (selectMobileEl) selectMobileEl.innerHTML = emptyOpt;
+                return;
+            }
+
             const options = state.projects.map(p => `<option value="${p.ProjectID}" ${p.ProjectID === state.activeProjectId ? 'selected' : ''}>${p.NamaProyek}</option>`).join('');
-            document.getElementById('activeProjectSelect').innerHTML = options;
-            document.getElementById('activeProjectSelectMobile').innerHTML = options;
+            if (selectEl) selectEl.innerHTML = options;
+            if (selectMobileEl) selectMobileEl.innerHTML = options;
         }
 
         function changeActiveProject(projId) {
@@ -1123,11 +1038,24 @@ self.addEventListener('fetch', (e) => {
         // DASHBOARD & CHARTS LOGIC
         // ==========================================
         function renderDashboard() {
-            const activeProj = state.projects.find(p => p.ProjectID === state.activeProjectId) || state.projects[0];
-            if (activeProj) {
-                document.getElementById('dashProjectTitle').innerText = activeProj.NamaProyek;
-                document.getElementById('dashProjectSubtitle').innerText = `Klien: ${activeProj.Klien} | Lokasi: ${activeProj.Lokasi}`;
+            const activeProj = state.projects.find(p => p.ProjectID === state.activeProjectId);
+            
+            if (!activeProj) {
+                document.getElementById('dashProjectTitle').innerText = "Belum Ada Proyek Aktif";
+                document.getElementById('dashProjectSubtitle').innerText = "Silakan buat proyek baru melalui menu Daftar Proyek.";
+                document.getElementById('statRundownCount').innerText = "0";
+                document.getElementById('statRundownDuration').innerText = "0 Jam Terjadwal";
+                document.getElementById('statTaskProgress').innerText = "0%";
+                document.getElementById('statTaskRatio').innerText = "0 dari 0 selesai";
+                document.getElementById('statPendingTasks').innerText = "0";
+                document.getElementById('statCrewCount').innerText = state.crew.length;
+                document.getElementById('liveRundownCard').innerHTML = `<p class="text-gray-400 text-sm">Belum ada proyek atau sesi rundown aktif.</p>`;
+                renderDashboardCharts([]);
+                return;
             }
+
+            document.getElementById('dashProjectTitle').innerText = activeProj.NamaProyek;
+            document.getElementById('dashProjectSubtitle').innerText = `Klien: ${activeProj.Klien} | Lokasi: ${activeProj.Lokasi}`;
 
             // Stats
             const projRundowns = state.rundowns.filter(r => r.ProjectID === state.activeProjectId);
@@ -1176,6 +1104,10 @@ self.addEventListener('fetch', (e) => {
         }
 
         function setStageControlState(type) {
+            if (!state.activeProjectId) {
+                Swal.fire('Info', 'Pilih atau buat proyek terlebih dahulu.', 'info');
+                return;
+            }
             if (type === 'DELAY') {
                 Swal.fire({
                     title: 'Tunda Rundown',
@@ -1213,6 +1145,7 @@ self.addEventListener('fetch', (e) => {
 
         function nextRundownItem() {
             const projRundowns = state.rundowns.filter(r => r.ProjectID === state.activeProjectId);
+            if (!projRundowns.length) return;
             if (state.liveRundownIndex < projRundowns.length - 1) {
                 state.liveRundownIndex++;
             } else {
@@ -1276,6 +1209,11 @@ self.addEventListener('fetch', (e) => {
         // RUNDOWN BUILDER LOGIC & OVERLAP DETECT
         // ==========================================
         function renderRundown() {
+            if (!state.activeProjectId) {
+                document.getElementById('rundownTableBody').innerHTML = `<tr><td colspan="7" class="py-6 text-center text-gray-500 text-xs">Belum ada proyek aktif. Silakan buat proyek terlebih dahulu.</td></tr>`;
+                return;
+            }
+
             const list = state.rundowns.filter(r => r.ProjectID === state.activeProjectId);
             const tbody = document.getElementById('rundownTableBody');
 
@@ -1324,7 +1262,7 @@ self.addEventListener('fetch', (e) => {
                         </span>
                     </td>
                     <td class="py-3 px-4 text-right space-x-1">
-                        <button onclick="editRundown('${item.RundownID}')" class="p-1.5 text-gray-400 hover:text-indigo-400"><i class="bi bi-pencil-square"></i></button>
+                        <button onclick="openRundownModal(state.rundowns.find(r => r.RundownID === '${item.RundownID}'))" class="p-1.5 text-gray-400 hover:text-indigo-400"><i class="bi bi-pencil-square"></i></button>
                         <button onclick="deleteRundown('${item.RundownID}')" class="p-1.5 text-gray-400 hover:text-rose-400"><i class="bi bi-trash"></i></button>
                     </td>
                 </tr>
@@ -1381,6 +1319,10 @@ self.addEventListener('fetch', (e) => {
         }
 
         function openRundownModal(item = null) {
+            if (!state.activeProjectId) {
+                Swal.fire('Info', 'Buat atau pilih proyek aktif terlebih dahulu sebelum menambah sesi rundown.', 'info');
+                return;
+            }
             document.getElementById('rundownForm').reset();
             if (item) {
                 document.getElementById('rdId').value = item.RundownID;
@@ -1394,6 +1336,9 @@ self.addEventListener('fetch', (e) => {
                 calculateRundownEndTime();
             } else {
                 document.getElementById('rdId').value = '';
+                document.getElementById('rdStartTime').value = "08:00";
+                document.getElementById('rdDuration').value = 30;
+                calculateRundownEndTime();
             }
             document.getElementById('rundownModal').classList.remove('hidden');
         }
@@ -1450,6 +1395,10 @@ self.addEventListener('fetch', (e) => {
 
         // EXPORT RUNDOWN PDF / EXCEL
         function exportRundownPDF() {
+            if (!state.activeProjectId) {
+                Swal.fire('Info', 'Tidak ada proyek aktif untuk diexport.', 'info');
+                return;
+            }
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             doc.text(`Rundown Event - ${state.activeProjectId}`, 14, 15);
@@ -1466,6 +1415,10 @@ self.addEventListener('fetch', (e) => {
         }
 
         function exportRundownExcel() {
+            if (!state.activeProjectId) {
+                Swal.fire('Info', 'Tidak ada proyek aktif untuk diexport.', 'info');
+                return;
+            }
             const list = state.rundowns.filter(r => r.ProjectID === state.activeProjectId);
             const ws = XLSX.utils.json_to_sheet(list);
             const wb = XLSX.utils.book_new();
@@ -1478,6 +1431,10 @@ self.addEventListener('fetch', (e) => {
         // ==========================================
         function renderProjects() {
             const grid = document.getElementById('projectsGrid');
+            if (!state.projects.length) {
+                grid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500 text-sm">Belum ada proyek. Klik tombol "Buat Proyek Baru" di atas.</div>`;
+                return;
+            }
             grid.innerHTML = state.projects.map(p => `
                 <div class="glass-panel p-5 rounded-2xl border border-brand-border space-y-3">
                     <div class="flex items-center justify-between">
@@ -1485,7 +1442,7 @@ self.addEventListener('fetch', (e) => {
                             ${p.Status}
                         </span>
                         <div class="space-x-1">
-                            <button onclick="editProject('${p.ProjectID}')" class="text-gray-400 hover:text-indigo-400 text-xs"><i class="bi bi-pencil-square"></i></button>
+                            <button onclick="openProjectModal(state.projects.find(proj => proj.ProjectID === '${p.ProjectID}'))" class="text-gray-400 hover:text-indigo-400 text-xs"><i class="bi bi-pencil-square"></i></button>
                             <button onclick="deleteProject('${p.ProjectID}')" class="text-gray-400 hover:text-rose-400 text-xs"><i class="bi bi-trash"></i></button>
                         </div>
                     </div>
@@ -1541,18 +1498,18 @@ self.addEventListener('fetch', (e) => {
                 state.projects = state.projects.map(p => p.ProjectID === id ? newP : p);
             } else {
                 state.projects.push(newP);
+                if (!state.activeProjectId) {
+                    state.activeProjectId = newP.ProjectID;
+                }
             }
             saveStateToStorage();
             closeProjectModal();
             renderProjects();
             renderActiveProjectDropdowns();
+            renderDashboard();
         }
 
         function deleteProject(id) {
-            if (state.projects.length <= 1) {
-                Swal.fire('Error', 'Minimal harus ada 1 proyek aktif!', 'error');
-                return;
-            }
             Swal.fire({
                 title: 'Hapus Proyek?',
                 text: 'Proyek dan seluruh data terkait akan dihapus.',
@@ -1562,10 +1519,16 @@ self.addEventListener('fetch', (e) => {
             }).then(res => {
                 if (res.isConfirmed) {
                     state.projects = state.projects.filter(p => p.ProjectID !== id);
-                    if (state.activeProjectId === id) state.activeProjectId = state.projects[0].ProjectID;
+                    state.rundowns = state.rundowns.filter(r => r.ProjectID !== id);
+                    state.tasks = state.tasks.filter(t => t.ProjectID !== id);
+                    
+                    if (state.activeProjectId === id) {
+                        state.activeProjectId = state.projects.length ? state.projects[0].ProjectID : null;
+                    }
                     saveStateToStorage();
                     renderProjects();
                     renderActiveProjectDropdowns();
+                    renderDashboard();
                 }
             });
         }
@@ -1574,6 +1537,11 @@ self.addEventListener('fetch', (e) => {
         // TASKS / JOBDESK LOGIC
         // ==========================================
         function renderTasks() {
+            if (!state.activeProjectId) {
+                document.getElementById('tasksList').innerHTML = `<div class="col-span-full text-center py-8 text-gray-500 text-sm">Belum ada proyek aktif.</div>`;
+                return;
+            }
+
             const search = document.getElementById('taskSearchInput')?.value.toLowerCase() || '';
             const divFilter = document.getElementById('filterDivisionSelect')?.value || 'ALL';
             const statusFilter = document.getElementById('filterStatusSelect')?.value || 'ALL';
@@ -1633,6 +1601,10 @@ self.addEventListener('fetch', (e) => {
         }
 
         function openTaskModal(t = null) {
+            if (!state.activeProjectId) {
+                Swal.fire('Info', 'Buat atau pilih proyek aktif terlebih dahulu sebelum menambah jobdesk.', 'info');
+                return;
+            }
             document.getElementById('taskForm').reset();
             if (t) {
                 document.getElementById('taskId').value = t.TaskID;
@@ -1691,6 +1663,10 @@ self.addEventListener('fetch', (e) => {
         // ==========================================
         function renderCrew() {
             const tbody = document.getElementById('crewTableBody');
+            if (!state.crew.length) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-gray-500 text-xs">Belum ada anggota kru terdaftar.</td></tr>`;
+                return;
+            }
             tbody.innerHTML = state.crew.map(c => `
                 <tr class="hover:bg-slate-800/50 transition">
                     <td class="py-3 px-4 font-semibold text-white">${c.Nama}</td>
@@ -1737,9 +1713,15 @@ self.addEventListener('fetch', (e) => {
         }
 
         function renderFieldMode() {
+            if (!state.activeProjectId) {
+                document.getElementById('fieldRundownList').innerHTML = `<p class="text-gray-500 text-xs">Belum ada proyek aktif.</p>`;
+                document.getElementById('fieldTaskList').innerHTML = `<p class="text-gray-500 text-xs">Belum ada proyek aktif.</p>`;
+                return;
+            }
+
             const projRundowns = state.rundowns.filter(r => r.ProjectID === state.activeProjectId);
             const fieldRundown = document.getElementById('fieldRundownList');
-            fieldRundown.innerHTML = projRundowns.map(r => `
+            fieldRundown.innerHTML = projRundowns.length ? projRundowns.map(r => `
                 <div class="p-3 bg-slate-900 rounded-xl border border-slate-700 flex items-center justify-between">
                     <div>
                         <span class="text-xs font-mono font-bold text-emerald-400">${r.WaktuMulai} - ${r.WaktuSelesai}</span>
@@ -1748,11 +1730,11 @@ self.addEventListener('fetch', (e) => {
                     </div>
                     <span class="px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-bold">${r.Status}</span>
                 </div>
-            `).join('');
+            `).join('') : `<p class="text-gray-500 text-xs">Tidak ada sesi rundown.</p>`;
 
             const projTasks = state.tasks.filter(t => t.ProjectID === state.activeProjectId);
             const fieldTask = document.getElementById('fieldTaskList');
-            fieldTask.innerHTML = projTasks.map(t => `
+            fieldTask.innerHTML = projTasks.length ? projTasks.map(t => `
                 <div class="p-3 bg-slate-900 rounded-xl border border-slate-700 flex items-center justify-between">
                     <div>
                         <h4 class="font-bold text-white text-sm">${t.JudulTugas}</h4>
@@ -1762,7 +1744,7 @@ self.addEventListener('fetch', (e) => {
                         ${t.Status === 'Selesai' ? '✓ Selesai' : 'Tandai Selesai'}
                     </button>
                 </div>
-            `).join('');
+            `).join('') : `<p class="text-gray-500 text-xs">Tidak ada tugas dalam proyek ini.</p>`;
         }
 
         function toggleSimulatedOffline() {
